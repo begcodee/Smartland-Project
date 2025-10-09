@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { MapPin, FileText, Plus, Search, Eye } from 'lucide-react';
 import { mockLandParcels, blockchainService } from '@/lib/mockData';
 import { LandParcel } from '@/types';
+import { useRoleAccess } from '@/components/RoleBasedAccess';
 import { toast } from 'sonner';
 
 export default function LandRegistry() {
@@ -25,11 +26,20 @@ export default function LandRegistry() {
     documents: ''
   });
 
-  const filteredParcels = parcels.filter(parcel =>
-    parcel.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    parcel.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    parcel.location.address.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const { currentUser, canRegisterLand } = useRoleAccess();
+
+  const filteredParcels = parcels.filter(parcel => {
+    const matchesSearch = parcel.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      parcel.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      parcel.location.address.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Filter by user role
+    if (currentUser?.role === 'landowner') {
+      return matchesSearch && parcel.owner === currentUser.name;
+    }
+    
+    return matchesSearch;
+  });
 
   const handleRegisterLand = async () => {
     if (!newParcel.title || !newParcel.owner || !newParcel.address || !newParcel.area) {
@@ -41,7 +51,7 @@ export default function LandRegistry() {
     try {
       const parcelData = {
         title: newParcel.title,
-        owner: newParcel.owner,
+        owner: currentUser?.role === 'landowner' ? currentUser.name : newParcel.owner,
         location: {
           address: newParcel.address,
           coordinates: { lat: 28.6139 + Math.random() * 0.1, lng: 77.2090 + Math.random() * 0.1 }
@@ -89,90 +99,96 @@ export default function LandRegistry() {
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div>
           <h2 className="text-2xl font-bold">Land Registry</h2>
-          <p className="text-muted-foreground">Manage and view all registered land parcels</p>
+          <p className="text-muted-foreground">
+            {currentUser?.role === 'landowner' ? 'Manage your land parcels' : 'Manage and view all registered land parcels'}
+          </p>
         </div>
         
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Register New Land
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Register New Land Parcel</DialogTitle>
-              <DialogDescription>
-                Add a new land parcel to the blockchain registry
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Land Title *</Label>
-                <Input
-                  id="title"
-                  placeholder="e.g., Residential Plot - Sector 15"
-                  value={newParcel.title}
-                  onChange={(e) => setNewParcel({ ...newParcel, title: e.target.value })}
-                />
+        {canRegisterLand && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Register New Land
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Register New Land Parcel</DialogTitle>
+                <DialogDescription>
+                  Add a new land parcel to the blockchain registry
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Land Title *</Label>
+                  <Input
+                    id="title"
+                    placeholder="e.g., Residential Plot - Sector 15"
+                    value={newParcel.title}
+                    onChange={(e) => setNewParcel({ ...newParcel, title: e.target.value })}
+                  />
+                </div>
+                {currentUser?.role === 'authority' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="owner">Owner Name *</Label>
+                    <Input
+                      id="owner"
+                      placeholder="Full name of the owner"
+                      value={newParcel.owner}
+                      onChange={(e) => setNewParcel({ ...newParcel, owner: e.target.value })}
+                    />
+                  </div>
+                )}
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="address">Address *</Label>
+                  <Input
+                    id="address"
+                    placeholder="Complete address with landmarks"
+                    value={newParcel.address}
+                    onChange={(e) => setNewParcel({ ...newParcel, address: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="area">Area (sq. meters) *</Label>
+                  <Input
+                    id="area"
+                    type="number"
+                    placeholder="500"
+                    value={newParcel.area}
+                    onChange={(e) => setNewParcel({ ...newParcel, area: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="value">Estimated Value (USD)</Label>
+                  <Input
+                    id="value"
+                    type="number"
+                    placeholder="75000"
+                    value={newParcel.value}
+                    onChange={(e) => setNewParcel({ ...newParcel, value: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="documents">Documents (comma-separated)</Label>
+                  <Textarea
+                    id="documents"
+                    placeholder="title_deed.pdf, survey_report.pdf, tax_receipt.pdf"
+                    value={newParcel.documents}
+                    onChange={(e) => setNewParcel({ ...newParcel, documents: e.target.value })}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="owner">Owner Name *</Label>
-                <Input
-                  id="owner"
-                  placeholder="Full name of the owner"
-                  value={newParcel.owner}
-                  onChange={(e) => setNewParcel({ ...newParcel, owner: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="address">Address *</Label>
-                <Input
-                  id="address"
-                  placeholder="Complete address with landmarks"
-                  value={newParcel.address}
-                  onChange={(e) => setNewParcel({ ...newParcel, address: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="area">Area (sq. meters) *</Label>
-                <Input
-                  id="area"
-                  type="number"
-                  placeholder="500"
-                  value={newParcel.area}
-                  onChange={(e) => setNewParcel({ ...newParcel, area: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="value">Estimated Value (USD)</Label>
-                <Input
-                  id="value"
-                  type="number"
-                  placeholder="75000"
-                  value={newParcel.value}
-                  onChange={(e) => setNewParcel({ ...newParcel, value: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="documents">Documents (comma-separated)</Label>
-                <Textarea
-                  id="documents"
-                  placeholder="title_deed.pdf, survey_report.pdf, tax_receipt.pdf"
-                  value={newParcel.documents}
-                  onChange={(e) => setNewParcel({ ...newParcel, documents: e.target.value })}
-                />
-              </div>
-            </div>
-            <Button 
-              onClick={handleRegisterLand} 
-              disabled={isRegistering}
-              className="w-full"
-            >
-              {isRegistering ? 'Registering on Blockchain...' : 'Register Land Parcel'}
-            </Button>
-          </DialogContent>
-        </Dialog>
+              <Button 
+                onClick={handleRegisterLand} 
+                disabled={isRegistering}
+                className="w-full"
+              >
+                {isRegistering ? 'Registering on Blockchain...' : 'Register Land Parcel'}
+              </Button>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Search */}
@@ -305,7 +321,11 @@ export default function LandRegistry() {
         <div className="text-center py-12">
           <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-medium mb-2">No land parcels found</h3>
-          <p className="text-muted-foreground">Try adjusting your search criteria or register a new land parcel.</p>
+          <p className="text-muted-foreground">
+            {currentUser?.role === 'landowner' 
+              ? 'Register your first land parcel to get started.' 
+              : 'Try adjusting your search criteria or register a new land parcel.'}
+          </p>
         </div>
       )}
     </div>

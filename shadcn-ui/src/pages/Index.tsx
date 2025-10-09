@@ -3,193 +3,438 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, FileText, Gavel, ArrowRightLeft, Shield, Users } from 'lucide-react';
+import { 
+  MapPin, FileText, Gavel, ArrowRightLeft, Shield, Users, LogIn, UserPlus,
+  Zap, TrendingUp, Award, Activity, Globe, Sparkles
+} from 'lucide-react';
 import { mockLandParcels, mockDisputes, mockTransfers } from '@/lib/mockData';
+import { AuthProvider, useAuth, LoginForm, RegisterForm } from '@/components/UserAuth';
+import { UserProfileDialog } from '@/components/UserProfile';
+import { RoleBasedAccess } from '@/components/RoleBasedAccess';
 import LandRegistry from '@/components/LandRegistry';
 import OwnershipTransfer from '@/components/OwnershipTransfer';
 import DisputeResolution from '@/components/DisputeResolution';
 import SmartContractInterface from '@/components/SmartContractInterface';
 
-export default function Index() {
-  const [activeTab, setActiveTab] = useState('dashboard');
-
+const Dashboard = () => {
+  const { currentUser } = useAuth();
   const activeDisputes = mockDisputes.filter(d => d.status !== 'resolved');
   const pendingTransfers = mockTransfers.filter(t => t.status !== 'completed');
-  const totalLandValue = mockLandParcels.reduce((sum, parcel) => sum + parcel.value, 0);
+
+  // Filter data based on user role
+  const getUserData = () => {
+    if (!currentUser) return { parcels: [], disputes: [], transfers: [] };
+    
+    switch (currentUser.role) {
+      case 'landowner':
+        return {
+          parcels: mockLandParcels.filter(p => p.owner === currentUser.name),
+          disputes: mockDisputes.filter(d => d.plaintiff === currentUser.name || d.defendant === currentUser.name),
+          transfers: mockTransfers.filter(t => t.from === currentUser.name || t.to === currentUser.name)
+        };
+      case 'buyer':
+        return {
+          parcels: [],
+          disputes: mockDisputes.filter(d => d.plaintiff === currentUser.name || d.defendant === currentUser.name),
+          transfers: mockTransfers.filter(t => t.to === currentUser.name)
+        };
+      case 'authority':
+      case 'arbitrator':
+        return {
+          parcels: mockLandParcels,
+          disputes: mockDisputes,
+          transfers: mockTransfers
+        };
+      default:
+        return { parcels: [], disputes: [], transfers: [] };
+    }
+  };
+
+  const userData = getUserData();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-4">
-            Decentralized Land Registry
+    <div className="space-y-8">
+      {/* Welcome Message */}
+      {currentUser && (
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-purple-600 to-green-500 p-8 text-white">
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="relative flex items-center justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+                  <Sparkles className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">Welcome back, {currentUser.name}!</h2>
+                  <p className="text-white/80">
+                    <span className="capitalize font-medium">{currentUser.role}</span>
+                    {currentUser.reputation && (
+                      <span className="ml-3 inline-flex items-center gap-1">
+                        <Award className="h-4 w-4" />
+                        {currentUser.reputation.score}/100
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
+                <Shield className="w-3 h-3 mr-1" />
+                {currentUser.verificationStatus}
+              </Badge>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="group hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-blue-50 to-blue-100/50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-blue-700">
+                  {currentUser?.role === 'landowner' ? 'My Properties' : 'Total Properties'}
+                </p>
+                <p className="text-3xl font-bold text-blue-900">{userData.parcels.length}</p>
+                <p className="text-xs text-blue-600 flex items-center gap-1">
+                  <Zap className="h-3 w-3" />
+                  On blockchain
+                </p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500 text-white group-hover:scale-110 transition-transform">
+                <MapPin className="h-6 w-6" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="group hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-green-50 to-green-100/50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-green-700">Portfolio Value</p>
+                <p className="text-3xl font-bold text-green-900">
+                  ${userData.parcels.reduce((sum, p) => sum + p.value, 0).toLocaleString()}
+                </p>
+                <p className="text-xs text-green-600 flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  USD equivalent
+                </p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500 text-white group-hover:scale-110 transition-transform">
+                <FileText className="h-6 w-6" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="group hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-orange-50 to-orange-100/50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-orange-700">
+                  {currentUser?.role === 'landowner' || currentUser?.role === 'buyer' ? 'My Disputes' : 'Active Disputes'}
+                </p>
+                <p className="text-3xl font-bold text-orange-900">{userData.disputes.length}</p>
+                <p className="text-xs text-orange-600 flex items-center gap-1">
+                  <Activity className="h-3 w-3" />
+                  Pending resolution
+                </p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500 text-white group-hover:scale-110 transition-transform">
+                <Gavel className="h-6 w-6" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="group hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-purple-50 to-purple-100/50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-purple-700">
+                  {currentUser?.role === 'buyer' ? 'My Purchases' : 'Active Transfers'}
+                </p>
+                <p className="text-3xl font-bold text-purple-900">{userData.transfers.length}</p>
+                <p className="text-xs text-purple-600 flex items-center gap-1">
+                  <Shield className="h-3 w-3" />
+                  In escrow
+                </p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-500 text-white group-hover:scale-110 transition-transform">
+                <ArrowRightLeft className="h-6 w-6" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* User Reputation Card */}
+      {currentUser?.reputation && (
+        <Card className="border-0 bg-gradient-to-r from-indigo-50 via-white to-cyan-50">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500 text-white">
+                <Award className="h-5 w-5" />
+              </div>
+              Your Reputation & Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="text-center space-y-2">
+                <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+                  {currentUser.reputation.totalTransactions}
+                </div>
+                <p className="text-sm text-muted-foreground">Total Transactions</p>
+              </div>
+              <div className="text-center space-y-2">
+                <div className="text-2xl font-bold bg-gradient-to-r from-green-600 to-green-800 bg-clip-text text-transparent">
+                  {currentUser.reputation.successfulTransactions}
+                </div>
+                <p className="text-sm text-muted-foreground">Successful</p>
+              </div>
+              <div className="text-center space-y-2">
+                <div className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-800 bg-clip-text text-transparent">
+                  {currentUser.reputation.disputesWon}
+                </div>
+                <p className="text-sm text-muted-foreground">Disputes Won</p>
+              </div>
+              <div className="text-center space-y-2">
+                <div className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
+                  {currentUser.reputation.communityVotes}
+                </div>
+                <p className="text-sm text-muted-foreground">Community Votes</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100">
+                <Gavel className="h-4 w-4 text-orange-600" />
+              </div>
+              Recent Disputes
+            </CardTitle>
+            <CardDescription>Latest land dispute cases</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {userData.disputes.slice(0, 3).map((dispute) => (
+              <div key={dispute.id} className="flex items-center justify-between p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                <div className="space-y-1">
+                  <p className="font-medium text-sm">{dispute.plaintiff} vs {dispute.defendant}</p>
+                  <p className="text-xs text-muted-foreground">{dispute.description.substring(0, 60)}...</p>
+                </div>
+                <Badge variant={dispute.status === 'community_voting' ? 'default' : 'secondary'} className="rounded-full">
+                  {dispute.status.replace('_', ' ')}
+                </Badge>
+              </div>
+            ))}
+            {userData.disputes.length === 0 && (
+              <div className="text-center py-8">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 mx-auto mb-3">
+                  <Gavel className="h-6 w-6 text-gray-400" />
+                </div>
+                <p className="text-sm text-muted-foreground">No disputes found</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
+                <ArrowRightLeft className="h-4 w-4 text-purple-600" />
+              </div>
+              Recent Transfers
+            </CardTitle>
+            <CardDescription>Latest ownership transfers</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {userData.transfers.map((transfer) => {
+              const parcel = mockLandParcels.find(p => p.id === transfer.landParcelId);
+              return (
+                <div key={transfer.id} className="flex items-center justify-between p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <div className="space-y-1">
+                    <p className="font-medium text-sm">{parcel?.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {transfer.from} → {transfer.to}
+                    </p>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <Badge variant="outline" className="rounded-full">{transfer.status}</Badge>
+                    <p className="text-xs text-muted-foreground">${transfer.amount.toLocaleString()}</p>
+                  </div>
+                </div>
+              );
+            })}
+            {userData.transfers.length === 0 && (
+              <div className="text-center py-8">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 mx-auto mb-3">
+                  <ArrowRightLeft className="h-6 w-6 text-gray-400" />
+                </div>
+                <p className="text-sm text-muted-foreground">No transfers found</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Blockchain Network Status */}
+      <RoleBasedAccess allowedRoles={['authority', 'arbitrator']}>
+        <Card className="border-0 bg-gradient-to-r from-gray-50 to-gray-100">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-700">
+                <Globe className="h-4 w-4 text-white" />
+              </div>
+              Blockchain Network Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-6 rounded-xl bg-white shadow-sm">
+                <div className="text-3xl font-bold text-green-600 mb-1">99.9%</div>
+                <p className="text-sm text-muted-foreground">Network Uptime</p>
+              </div>
+              <div className="text-center p-6 rounded-xl bg-white shadow-sm">
+                <div className="text-3xl font-bold text-blue-600 mb-1">2.3s</div>
+                <p className="text-sm text-muted-foreground">Avg Block Time</p>
+              </div>
+              <div className="text-center p-6 rounded-xl bg-white shadow-sm">
+                <div className="text-3xl font-bold text-purple-600 mb-1">1,247</div>
+                <p className="text-sm text-muted-foreground">Total Transactions</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </RoleBasedAccess>
+    </div>
+  );
+};
+
+const AuthPage = () => {
+  const [isLogin, setIsLogin] = useState(true);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl space-y-8">
+        <div className="text-center space-y-4">
+          <div className="flex justify-center mb-6">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg">
+              <Shield className="h-8 w-8" />
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+            Land Registry
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Secure, transparent, and tamper-proof land ownership management powered by blockchain smart contracts
+          <p className="text-lg text-muted-foreground max-w-md mx-auto">
+            Secure, transparent land ownership management powered by blockchain technology
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-fit lg:mx-auto">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="registry" className="flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
-              Registry
-            </TabsTrigger>
-            <TabsTrigger value="transfer" className="flex items-center gap-2">
-              <ArrowRightLeft className="w-4 h-4" />
-              Transfer
-            </TabsTrigger>
-            <TabsTrigger value="disputes" className="flex items-center gap-2">
-              <Gavel className="w-4 h-4" />
-              Disputes
-            </TabsTrigger>
-            <TabsTrigger value="contracts" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Contracts
-            </TabsTrigger>
-          </TabsList>
+        <div className="flex gap-1 p-1 bg-white rounded-xl shadow-sm max-w-sm mx-auto">
+          <Button
+            variant={isLogin ? "default" : "ghost"}
+            className={`flex-1 rounded-lg ${isLogin ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : ''}`}
+            onClick={() => setIsLogin(true)}
+          >
+            <LogIn className="w-4 h-4 mr-2" />
+            Login
+          </Button>
+          <Button
+            variant={!isLogin ? "default" : "ghost"}
+            className={`flex-1 rounded-lg ${!isLogin ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : ''}`}
+            onClick={() => setIsLogin(false)}
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Register
+          </Button>
+        </div>
 
-          <TabsContent value="dashboard" className="space-y-6">
-            {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Land Parcels</CardTitle>
-                  <MapPin className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-700">{mockLandParcels.length}</div>
-                  <p className="text-xs text-blue-600">Registered on blockchain</p>
-                </CardContent>
-              </Card>
+        {isLogin ? <LoginForm /> : <RegisterForm />}
+      </div>
+    </div>
+  );
+};
 
-              <Card className="border-green-200 bg-gradient-to-br from-green-50 to-green-100">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Value</CardTitle>
-                  <FileText className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-700">${totalLandValue.toLocaleString()}</div>
-                  <p className="text-xs text-green-600">USD equivalent</p>
-                </CardContent>
-              </Card>
+const MainApp = () => {
+  const { currentUser } = useAuth();
+  const [activeTab, setActiveTab] = useState('dashboard');
 
-              <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Disputes</CardTitle>
-                  <Gavel className="h-4 w-4 text-orange-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-orange-700">{activeDisputes.length}</div>
-                  <p className="text-xs text-orange-600">Pending resolution</p>
-                </CardContent>
-              </Card>
+  if (!currentUser) {
+    return <AuthPage />;
+  }
 
-              <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Pending Transfers</CardTitle>
-                  <ArrowRightLeft className="h-4 w-4 text-purple-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-purple-700">{pendingTransfers.length}</div>
-                  <p className="text-xs text-purple-600">In escrow</p>
-                </CardContent>
-              </Card>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8 flex items-center justify-between">
+          <div className="text-center flex-1">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg">
+                <Shield className="h-6 w-6" />
+              </div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                Land Registry
+              </h1>
             </div>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Secure, transparent, and tamper-proof land ownership management powered by blockchain smart contracts
+            </p>
+          </div>
+          <UserProfileDialog />
+        </div>
 
-            {/* Recent Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Gavel className="w-5 h-5" />
-                    Recent Disputes
-                  </CardTitle>
-                  <CardDescription>Latest land dispute cases</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {activeDisputes.slice(0, 3).map((dispute) => (
-                    <div key={dispute.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="space-y-1">
-                        <p className="font-medium text-sm">{dispute.plaintiff} vs {dispute.defendant}</p>
-                        <p className="text-xs text-muted-foreground">{dispute.description.substring(0, 60)}...</p>
-                      </div>
-                      <Badge variant={dispute.status === 'community_voting' ? 'default' : 'secondary'}>
-                        {dispute.status.replace('_', ' ')}
-                      </Badge>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <div className="flex justify-center">
+            <TabsList className="grid grid-cols-5 bg-white shadow-sm rounded-xl p-1">
+              <TabsTrigger value="dashboard" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white">
+                <Activity className="w-4 h-4" />
+                <span className="hidden sm:inline">Dashboard</span>
+              </TabsTrigger>
+              <TabsTrigger value="registry" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white">
+                <MapPin className="w-4 h-4" />
+                <span className="hidden sm:inline">Registry</span>
+              </TabsTrigger>
+              <TabsTrigger value="transfer" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white">
+                <ArrowRightLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Transfer</span>
+              </TabsTrigger>
+              <TabsTrigger value="disputes" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white">
+                <Gavel className="w-4 h-4" />
+                <span className="hidden sm:inline">Disputes</span>
+              </TabsTrigger>
+              <TabsTrigger value="contracts" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white">
+                <FileText className="w-4 h-4" />
+                <span className="hidden sm:inline">Contracts</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ArrowRightLeft className="w-5 h-5" />
-                    Recent Transfers
-                  </CardTitle>
-                  <CardDescription>Latest ownership transfers</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {pendingTransfers.map((transfer) => {
-                    const parcel = mockLandParcels.find(p => p.id === transfer.landParcelId);
-                    return (
-                      <div key={transfer.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="space-y-1">
-                          <p className="font-medium text-sm">{parcel?.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {transfer.from} → {transfer.to}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant="outline">{transfer.status}</Badge>
-                          <p className="text-xs text-muted-foreground mt-1">${transfer.amount.toLocaleString()}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Blockchain Network Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="w-5 h-5" />
-                  Blockchain Network Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 border rounded-lg bg-green-50">
-                    <div className="text-2xl font-bold text-green-600">99.9%</div>
-                    <p className="text-sm text-muted-foreground">Network Uptime</p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg bg-blue-50">
-                    <div className="text-2xl font-bold text-blue-600">2.3s</div>
-                    <p className="text-sm text-muted-foreground">Avg Block Time</p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg bg-purple-50">
-                    <div className="text-2xl font-bold text-purple-600">1,247</div>
-                    <p className="text-sm text-muted-foreground">Total Transactions</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="dashboard">
+            <Dashboard />
           </TabsContent>
 
           <TabsContent value="registry">
-            <LandRegistry />
+            <RoleBasedAccess allowedRoles={['landowner', 'authority']}>
+              <LandRegistry />
+            </RoleBasedAccess>
           </TabsContent>
 
           <TabsContent value="transfer">
-            <OwnershipTransfer />
+            <RoleBasedAccess allowedRoles={['landowner', 'buyer', 'authority']}>
+              <OwnershipTransfer />
+            </RoleBasedAccess>
           </TabsContent>
 
           <TabsContent value="disputes">
@@ -197,10 +442,20 @@ export default function Index() {
           </TabsContent>
 
           <TabsContent value="contracts">
-            <SmartContractInterface />
+            <RoleBasedAccess allowedRoles={['authority', 'arbitrator']}>
+              <SmartContractInterface />
+            </RoleBasedAccess>
           </TabsContent>
         </Tabs>
       </div>
     </div>
+  );
+};
+
+export default function Index() {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
   );
 }

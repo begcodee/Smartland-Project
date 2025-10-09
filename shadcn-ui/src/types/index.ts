@@ -55,6 +55,29 @@ export interface User {
   role: 'landowner' | 'buyer' | 'authority' | 'arbitrator';
   walletAddress: string;
   verificationStatus: 'pending' | 'verified' | 'rejected';
+  profile: {
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    postalCode: string;
+    dateOfBirth: string;
+    nationalId: string;
+    bio: string;
+    avatar?: string;
+  };
+  reputation: {
+    score: number; // 0-100
+    totalTransactions: number;
+    successfulTransactions: number;
+    disputesWon: number;
+    disputesLost: number;
+    communityVotes: number;
+    lastUpdated: string;
+  };
+  joinedDate: string;
+  lastActive: string;
 }
 
 export interface SmartContract {

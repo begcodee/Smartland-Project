@@ -21,90 +21,89 @@
         </mxCell>
 
         <!-- Submit Land Registration Request -->
-        <mxCell id="step1" value="Submit Land\nRegistration Request"
+        <mxCell id="step1" value="Submit Land&#10;Registration Request"
                 style="rounded=1;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;whiteSpace=wrap;fontSize=14;"
                 vertex="1" parent="1">
           <mxGeometry x="530" y="200" width="160" height="70" as="geometry"/>
         </mxCell>
 
         <!-- SSI Verification Process -->
-        <mxCell id="step2" value="SSI Verification\nProcess"
+        <mxCell id="step2" value="SSI Verification&#10;Process"
                 style="rounded=1;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;whiteSpace=wrap;fontSize=14;"
                 vertex="1" parent="1">
           <mxGeometry x="530" y="290" width="160" height="70" as="geometry"/>
         </mxCell>
 
-        <!-- Identity Verified? (Decision) -->
-        <mxCell id="dec1" value="Identity\nVerified?"
+        <!-- Identity Verified Decision -->
+        <mxCell id="dec1" value="Identity&#10;Verified?"
                 style="rhombus;fillColor=#F39C12;strokeColor=#D68910;whiteSpace=wrap;fontSize=14;"
                 vertex="1" parent="1">
           <mxGeometry x="520" y="380" width="180" height="90" as="geometry"/>
         </mxCell>
 
-        <!-- No path: Reject & Notify -->
-        <mxCell id="reject1" value="Reject &amp;\nNotify Reason"
+        <!-- Reject (identity not verified) -->
+        <mxCell id="reject1" value="Reject &amp;&#10;Notify Reason"
                 style="rounded=1;fillColor=#2980B9;strokeColor=#1C5980;fontColor=#FFFFFF;whiteSpace=wrap;fontSize=14;"
                 vertex="1" parent="1">
           <mxGeometry x="780" y="380" width="160" height="70" as="geometry"/>
         </mxCell>
 
-        <!-- End (right) -->
+        <!-- End (right side) -->
         <mxCell id="endRight" value="End"
                 style="ellipse;fillColor=#E74C3C;strokeColor=#943126;fontSize=16;align=center;verticalAlign=middle;"
                 vertex="1" parent="1">
           <mxGeometry x="820" y="470" width="90" height="50" as="geometry"/>
         </mxCell>
 
-        <!-- Swimlane (Land Commission) dashed box -->
+        <!-- Swimlane (Land Commission) -->
         <mxCell id="landcomm" value="Land Commission"
                 style="rounded=1;dashed=1;dashPattern=4 4;strokeColor=#F5B041;align=center;verticalAlign=middle;fillColor=none;fontSize=14;"
                 vertex="1" parent="1">
           <mxGeometry x="480" y="480" width="260" height="60" as="geometry"/>
         </mxCell>
 
-        <!-- Validate Land Documents -->
-        <mxCell id="step3" value="Validate Land\nDocuments & Rights"
+        <!-- Validate Documents -->
+        <mxCell id="step3" value="Validate Land&#10;Documents &amp; Rights"
                 style="rounded=1;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;whiteSpace=wrap;fontSize=14;"
                 vertex="1" parent="1">
           <mxGeometry x="530" y="560" width="160" height="70" as="geometry"/>
         </mxCell>
 
-        <!-- Valid Documents? (Decision) -->
-        <mxCell id="dec2" value="Valid\nDocuments?"
+        <!-- Valid Documents Decision -->
+        <mxCell id="dec2" value="Valid&#10;Documents?"
                 style="rhombus;fillColor=#F39C12;strokeColor=#D68910;whiteSpace=wrap;fontSize=14;"
                 vertex="1" parent="1">
           <mxGeometry x="520" y="650" width="180" height="90" as="geometry"/>
         </mxCell>
 
-        <!-- Reject (document invalid) -->
-        <mxCell id="reject2" value="Reject &amp;\nNotify Reason"
+        <!-- Reject (invalid documents) -->
+        <mxCell id="reject2" value="Reject &amp;&#10;Notify Reason"
                 style="rounded=1;fillColor=#2980B9;strokeColor=#1C5980;fontColor=#FFFFFF;whiteSpace=wrap;fontSize=14;"
                 vertex="1" parent="1">
           <mxGeometry x="780" y="650" width="160" height="70" as="geometry"/>
         </mxCell>
 
-        <!-- End (right 2) -->
         <mxCell id="endRight2" value="End"
-                style="ellipse;fillColor=#E74C3C;strokeColor=#943126;fontSize=16;align=center;verticalAlign=middle;"
+                style="ellipse;fillColor=#E74C3C;strokeColor=#943126;fontSize=16;"
                 vertex="1" parent="1">
           <mxGeometry x="820" y="740" width="90" height="50" as="geometry"/>
         </mxCell>
 
         <!-- Record on Blockchain -->
-        <mxCell id="step4" value="Record on\nBlockchain"
+        <mxCell id="step4" value="Record on&#10;Blockchain"
                 style="rounded=1;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;whiteSpace=wrap;fontSize=14;"
                 vertex="1" parent="1">
           <mxGeometry x="530" y="760" width="160" height="70" as="geometry"/>
         </mxCell>
 
         <!-- Issue Digital Title -->
-        <mxCell id="step5" value="Issue Digital\nTitle Certificate"
+        <mxCell id="step5" value="Issue Digital&#10;Title Certificate"
                 style="rounded=1;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;whiteSpace=wrap;fontSize=14;"
                 vertex="1" parent="1">
           <mxGeometry x="530" y="850" width="160" height="70" as="geometry"/>
         </mxCell>
 
-        <!-- Final End -->
+        <!-- End -->
         <mxCell id="endFinal" value="End"
                 style="ellipse;fillColor=#E74C3C;strokeColor=#943126;fontSize=16;"
                 vertex="1" parent="1">
@@ -112,73 +111,55 @@
         </mxCell>
 
         <!-- Connectors -->
-        <mxCell id="c1" edge="1" parent="1" source="start" target="step1"
-                style="rounded=0;orthogonalLoop=1;strokeColor=#909497;">
+        <mxCell id="c1" edge="1" parent="1" source="start" target="step1" style="strokeColor=#909497;">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <mxCell id="c2" edge="1" parent="1" source="step1" target="step2"
-                style="strokeColor=#909497;">
+        <mxCell id="c2" edge="1" parent="1" source="step1" target="step2" style="strokeColor=#909497;">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <mxCell id="c3" edge="1" parent="1" source="step2" target="dec1"
-                style="strokeColor=#909497;">
+        <mxCell id="c3" edge="1" parent="1" source="step2" target="dec1" style="strokeColor=#909497;">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <!-- Identity Verified? Yes -->
-        <mxCell id="c4" edge="1" parent="1" source="dec1" target="step3"
-                value="Yes" style="strokeColor=#909497;labelBackgroundColor=#FFFFFF;">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="610" y="470" as="targetPoint"/>
-          </mxGeometry>
-        </mxCell>
-
-        <!-- Identity Verified? No -->
-        <mxCell id="c5" edge="1" parent="1" source="dec1" target="reject1"
-                value="No" style="strokeColor=#909497;labelBackgroundColor=#FFFFFF;">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="760" y="420" as="targetPoint"/>
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="c6" edge="1" parent="1" source="reject1" target="endRight"
-                style="strokeColor=#909497;">
+        <mxCell id="c4" edge="1" parent="1" source="dec1" target="step3" value="Yes"
+                style="strokeColor=#909497;labelBackgroundColor=#FFFFFF;">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <!-- Steps after Land Commission -->
-        <mxCell id="c7" edge="1" parent="1" source="step3" target="dec2"
-                style="strokeColor=#909497;">
+        <mxCell id="c5" edge="1" parent="1" source="dec1" target="reject1" value="No"
+                style="strokeColor=#909497;labelBackgroundColor=#FFFFFF;">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <!-- Valid Documents? Yes -->
-        <mxCell id="c8" edge="1" parent="1" source="dec2" target="step4"
-                value="Yes" style="strokeColor=#909497;labelBackgroundColor=#FFFFFF;">
+        <mxCell id="c6" edge="1" parent="1" source="reject1" target="endRight" style="strokeColor=#909497;">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <!-- Valid Documents? No -->
-        <mxCell id="c9" edge="1" parent="1" source="dec2" target="reject2"
-                value="No" style="strokeColor=#909497;labelBackgroundColor=#FFFFFF;">
+        <mxCell id="c7" edge="1" parent="1" source="step3" target="dec2" style="strokeColor=#909497;">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <mxCell id="c10" edge="1" parent="1" source="reject2" target="endRight2"
-                style="strokeColor=#909497;">
+        <mxCell id="c8" edge="1" parent="1" source="dec2" target="step4" value="Yes"
+                style="strokeColor=#909497;labelBackgroundColor=#FFFFFF;">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <!-- Final steps -->
-        <mxCell id="c11" edge="1" parent="1" source="step4" target="step5"
-                style="strokeColor=#909497;">
+        <mxCell id="c9" edge="1" parent="1" source="dec2" target="reject2" value="No"
+                style="strokeColor=#909497;labelBackgroundColor=#FFFFFF;">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <mxCell id="c12" edge="1" parent="1" source="step5" target="endFinal"
-                style="strokeColor=#909497;">
+        <mxCell id="c10" edge="1" parent="1" source="reject2" target="endRight2" style="strokeColor=#909497;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="c11" edge="1" parent="1" source="step4" target="step5" style="strokeColor=#909497;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="c12" edge="1" parent="1" source="step5" target="endFinal" style="strokeColor=#909497;">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
@@ -186,5 +167,6 @@
     </mxGraphModel>
   </diagram>
 </mxfile>
+
 
 

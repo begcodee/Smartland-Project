@@ -4,79 +4,80 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  MapPin, FileText, Search, Bell, BarChart3, 
-  Shield, Users, Gavel, User, LogOut 
+  Shield, Fingerprint, CreditCard, Globe, 
+  CheckCircle, Users, BarChart3, Settings,
+  Smartphone, Eye, Lock, User
 } from 'lucide-react';
-import { LandRegistry } from '@/components/LandRegistry';
-import { GhanaMapViewer } from '@/components/GhanaMapViewer';
-import { SearchAndFilter } from '@/components/SearchAndFilter';
-import { NotificationCenter } from '@/components/NotificationCenter';
-import { Analytics } from '@/components/Analytics';
-import { RoleBasedUI } from '@/components/RoleBasedUI';
-import { AuthProvider, useAuth } from '@/components/UserAuth';
+import { GovernmentCardVerification } from '@/components/GovernmentCardVerification';
+import { PasskeyAuthentication } from '@/components/PasskeyAuthentication';
+import { AfricaMapViewer } from '@/components/AfricaMapViewer';
+import { VerificationAnalytics } from '@/components/VerificationAnalytics';
+import { BiometricSecurity } from '@/components/BiometricSecurity';
+import { AuthProvider } from '@/components/UserAuth';
 
 // Mock user for demonstration
 const mockUser = {
   id: 'U001',
-  name: 'Kwame Asante',
-  email: 'kwame.asante@example.com',
-  role: 'landowner' as const,
+  name: 'Amara Okafor',
+  email: 'amara.okafor@gov.ng',
+  role: 'government_official' as const,
   verificationStatus: 'verified' as const,
-  country: 'GH',
-  phoneNumber: '+233244123456',
-  walletAddress: '0x742d35Cc6634C0532925a3b8D5c9C9b2f6e4C1F2'
+  country: 'NG',
+  phoneNumber: '+234901234567',
+  department: 'National Identity Management Commission'
 };
 
 const MainApp = () => {
   const [currentUser] = useState(mockUser);
-  const [activeTab, setActiveTab] = useState('registry');
+  const [activeTab, setActiveTab] = useState('verification');
 
   const tabs = [
-    { id: 'registry', label: 'Land Registry', icon: <FileText className="w-4 h-4" /> },
-    { id: 'map', label: 'Ghana Map', icon: <MapPin className="w-4 h-4" /> },
-    { id: 'search', label: 'Search & Filter', icon: <Search className="w-4 h-4" /> },
-    { id: 'notifications', label: 'Notifications', icon: <Bell className="w-4 h-4" /> },
-    ...(currentUser.role === 'authority' || currentUser.role === 'arbitrator' 
-      ? [{ id: 'analytics', label: 'Analytics', icon: <BarChart3 className="w-4 h-4" /> }] 
-      : [])
+    { id: 'verification', label: 'Card Verification', icon: <CreditCard className="w-4 h-4" /> },
+    { id: 'passkey', label: 'Passkey Security', icon: <Fingerprint className="w-4 h-4" /> },
+    { id: 'biometrics', label: 'Biometric Auth', icon: <Eye className="w-4 h-4" /> },
+    { id: 'map', label: 'Africa Coverage', icon: <Globe className="w-4 h-4" /> },
+    { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="w-4 h-4" /> }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Modern Header */}
+      <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-green-600 to-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                 <Shield className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Ghana Land Registry</h1>
-                <p className="text-sm text-gray-500">Blockchain-Powered Land Management</p>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                  AfricaVerify
+                </h1>
+                <p className="text-sm text-slate-500">Government Card Verification Platform</p>
               </div>
             </div>
             
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-blue-600" />
+                <div className="w-8 h-8 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4 text-indigo-600" />
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">{currentUser.name}</p>
+                  <p className="text-sm font-medium text-slate-900">{currentUser.name}</p>
                   <div className="flex items-center gap-2">
-                    <Badge variant="default" className="text-xs">
-                      {currentUser.verificationStatus === 'verified' ? '✓ Verified' : '⏳ Pending'}
+                    <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Verified
                     </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {currentUser.role}
+                    <Badge variant="outline" className="text-xs text-slate-600 border-slate-200">
+                      {currentUser.role.replace('_', ' ')}
                     </Badge>
                   </div>
                 </div>
               </div>
-              <Button variant="outline" size="sm">
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
+              <Button variant="outline" size="sm" className="border-slate-200 text-slate-600 hover:bg-slate-50">
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
               </Button>
             </div>
           </div>
@@ -86,19 +87,19 @@ const MainApp = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 border">
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm p-6 border border-slate-200/60">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  Welcome back, {currentUser.name}!
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                  Welcome, {currentUser.name}
                 </h2>
-                <p className="text-gray-600">
-                  Manage your land properties with blockchain security and transparency.
+                <p className="text-slate-600">
+                  Secure government card verification across Africa with advanced biometric authentication.
                 </p>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Shield className="w-4 h-4 text-green-600" />
-                <span>Wallet: {currentUser.walletAddress?.slice(0, 6)}...{currentUser.walletAddress?.slice(-4)}</span>
+              <div className="flex items-center gap-2 text-sm text-slate-500 bg-white/80 px-4 py-2 rounded-lg border border-slate-200/60">
+                <Lock className="w-4 h-4 text-green-600" />
+                <span>Passkey Enabled</span>
               </div>
             </div>
           </div>
@@ -106,132 +107,106 @@ const MainApp = () => {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-5 bg-white p-1 rounded-lg shadow-sm">
+          <TabsList className="grid w-full grid-cols-5 bg-white/60 backdrop-blur-sm p-1 rounded-xl shadow-sm border border-slate-200/60">
             {tabs.map((tab) => (
-              <TabsTrigger key={tab.id} value={tab.id} className="flex items-center gap-2">
+              <TabsTrigger 
+                key={tab.id} 
+                value={tab.id} 
+                className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
                 {tab.icon}
                 <span className="hidden sm:inline">{tab.label}</span>
               </TabsTrigger>
             ))}
           </TabsList>
 
-          <TabsContent value="registry" className="space-y-6">
-            <LandRegistry />
+          <TabsContent value="verification" className="space-y-6">
+            <GovernmentCardVerification />
+          </TabsContent>
+
+          <TabsContent value="passkey" className="space-y-6">
+            <PasskeyAuthentication />
+          </TabsContent>
+
+          <TabsContent value="biometrics" className="space-y-6">
+            <BiometricSecurity />
           </TabsContent>
 
           <TabsContent value="map" className="space-y-6">
-            <Card>
+            <Card className="bg-white/60 backdrop-blur-sm border-slate-200/60">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  Interactive Ghana Map
+                <CardTitle className="flex items-center gap-2 text-slate-900">
+                  <Globe className="w-5 h-5 text-indigo-600" />
+                  Africa Coverage Map
                 </CardTitle>
-                <CardDescription>
-                  Explore registered land parcels across Ghana's regions
+                <CardDescription className="text-slate-600">
+                  Government card verification coverage across African countries
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <GhanaMapViewer />
+                <AfricaMapViewer />
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="search" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Search className="w-5 h-5" />
-                  Advanced Search & Filters
-                </CardTitle>
-                <CardDescription>
-                  Find land properties by location, price, type, and more
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <SearchAndFilter />
-              </CardContent>
-            </Card>
+          <TabsContent value="analytics" className="space-y-6">
+            <VerificationAnalytics />
           </TabsContent>
-
-          <TabsContent value="notifications" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="w-5 h-5" />
-                  Notification Center
-                </CardTitle>
-                <CardDescription>
-                  Stay updated on your land transactions and system alerts
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <NotificationCenter />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {(currentUser.role === 'authority' || currentUser.role === 'arbitrator') && (
-            <TabsContent value="analytics" className="space-y-6">
-              <Analytics />
-            </TabsContent>
-          )}
         </Tabs>
 
         {/* Quick Stats Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
+          <Card className="bg-white/60 backdrop-blur-sm border-slate-200/60 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <FileText className="w-6 h-6 text-blue-600" />
+                <div className="p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl">
+                  <CreditCard className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">
-                    {currentUser.role === 'landowner' ? '3' : '156'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {currentUser.role === 'landowner' ? 'My Properties' : 'Total Properties'}
-                  </p>
+                  <p className="text-2xl font-bold text-slate-900">2,847</p>
+                  <p className="text-sm text-slate-500">Cards Verified Today</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/60 backdrop-blur-sm border-slate-200/60 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <Shield className="w-6 h-6 text-green-600" />
+                <div className="p-3 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl">
+                  <Fingerprint className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">
-                    {currentUser.verificationStatus === 'verified' ? '✓' : '⏳'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Verification Status
-                  </p>
+                  <p className="text-2xl font-bold text-slate-900">98.7%</p>
+                  <p className="text-sm text-slate-500">Biometric Match Rate</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/60 backdrop-blur-sm border-slate-200/60 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  {currentUser.role === 'arbitrator' ? (
-                    <Gavel className="w-6 h-6 text-purple-600" />
-                  ) : (
-                    <Users className="w-6 h-6 text-purple-600" />
-                  )}
+                <div className="p-3 bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl">
+                  <Globe className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">
-                    {currentUser.role === 'arbitrator' ? '2' : '89'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {currentUser.role === 'arbitrator' ? 'Active Disputes' : 'Active Users'}
-                  </p>
+                  <p className="text-2xl font-bold text-slate-900">54</p>
+                  <p className="text-sm text-slate-500">Countries Supported</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/60 backdrop-blur-sm border-slate-200/60 hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-r from-orange-100 to-red-100 rounded-xl">
+                  <Users className="w-6 h-6 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-slate-900">156K</p>
+                  <p className="text-sm text-slate-500">Active Users</p>
                 </div>
               </div>
             </CardContent>
@@ -240,30 +215,30 @@ const MainApp = () => {
 
         {/* Feature Highlights */}
         <div className="mt-8">
-          <Card>
+          <Card className="bg-white/60 backdrop-blur-sm border-slate-200/60">
             <CardHeader>
-              <CardTitle>System Features</CardTitle>
-              <CardDescription>
-                Comprehensive land management with blockchain security
+              <CardTitle className="text-slate-900">Platform Features</CardTitle>
+              <CardDescription className="text-slate-600">
+                Advanced government card verification with cutting-edge security
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                  <Shield className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm font-medium">Blockchain Security</span>
+                <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl border border-indigo-100">
+                  <Fingerprint className="w-5 h-5 text-indigo-600" />
+                  <span className="text-sm font-medium text-slate-700">Passkey Authentication</span>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                  <FileText className="w-5 h-5 text-green-600" />
-                  <span className="text-sm font-medium">Document Verification</span>
+                <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100">
+                  <Eye className="w-5 h-5 text-green-600" />
+                  <span className="text-sm font-medium text-slate-700">Biometric Verification</span>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-                  <MapPin className="w-5 h-5 text-purple-600" />
-                  <span className="text-sm font-medium">Interactive Mapping</span>
+                <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
+                  <CreditCard className="w-5 h-5 text-purple-600" />
+                  <span className="text-sm font-medium text-slate-700">Multi-Country Support</span>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg">
-                  <BarChart3 className="w-5 h-5 text-orange-600" />
-                  <span className="text-sm font-medium">Analytics Dashboard</span>
+                <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-100">
+                  <Smartphone className="w-5 h-5 text-orange-600" />
+                  <span className="text-sm font-medium text-slate-700">Mobile Integration</span>
                 </div>
               </div>
             </CardContent>

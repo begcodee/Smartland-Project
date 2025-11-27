@@ -1,77 +1,82 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mxfile host="app.diagrams.net">
   <diagram id="SmartLandERD" name="ERD">
-    <mxGraphModel dx="1000" dy="1000" grid="1" gridSize="10" tooltips="1" connect="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1500">
+    <mxGraphModel dx="1000" dy="1000" grid="1" gridSize="10" tooltips="1" connect="1" fold="1" page="1" pageWidth="2000" pageHeight="2000">
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
 
-        <!-- USER TABLE -->
-        <mxCell id="user_tbl" value="User&#10;------------------&#10;user_id (UUID)&#10;full_name (VARCHAR)&#10;email (VARCHAR)&#10;ssi_credential (TEXT)&#10;user_type (ENUM)&#10;verification_status (BOOL)&#10;created_at (TIMESTAMP)"
-          style="shape=rectangle;rounded=1;whiteSpace=wrap;align=left;spacingLeft=10;fillColor=#D6EAF8;" vertex="1" parent="1">
-          <mxGeometry x="100" y="100" width="240" height="220" as="geometry"/>
+        <!-- USER -->
+        <mxCell id="user_tbl" value="User&#10;--------------&#10;user_id (UUID PK)&#10;full_name (VARCHAR)&#10;email (VARCHAR)&#10;ssi_credential (TEXT)&#10;user_type (ENUM)&#10;verification_status (BOOLEAN)&#10;created_at (TIMESTAMP)"
+          style="shape=rectangle;whiteSpace=wrap;rounded=1;align=left;spacingLeft=8;fillColor=#E8F4FA;" vertex="1" parent="1">
+          <mxGeometry x="100" y="120" width="230" height="220" as="geometry"/>
         </mxCell>
 
-        <!-- LAND PARCEL TABLE -->
-        <mxCell id="parcel_tbl" value="Land_Parcel&#10;------------------&#10;parcel_id (UUID)&#10;location_address (TEXT)&#10;coordinates (GEOGRAPHY)&#10;area_size (DECIMAL)&#10;boundaries (POLYGON)&#10;status (ENUM)&#10;registration_date (TIMESTAMP)&#10;blockchain_ref (TEXT)"
-          style="shape=rectangle;rounded=1;whiteSpace=wrap;align=left;spacingLeft=10;fillColor=#D5F5E3;" vertex="1" parent="1">
-          <mxGeometry x="430" y="80" width="260" height="260" as="geometry"/>
+        <!-- LAND PARCEL -->
+        <mxCell id="parcel_tbl" value="Land_Parcel&#10;--------------&#10;parcel_id (UUID PK)&#10;location_address (TEXT)&#10;coordinates (GEOGRAPHY)&#10;area_size (DECIMAL)&#10;boundaries (POLYGON)&#10;status (ENUM)&#10;registration_date (TIMESTAMP)&#10;blockchain_ref (TEXT)"
+          style="shape=rectangle;whiteSpace=wrap;rounded=1;align=left;spacingLeft=8;fillColor=#E9F7EF;" vertex="1" parent="1">
+          <mxGeometry x="420" y="100" width="260" height="260" as="geometry"/>
         </mxCell>
 
-        <!-- SMART CONTRACT TABLE -->
-        <mxCell id="contract_tbl" value="Smart_Contract&#10;------------------&#10;contract_id (UUID)&#10;transaction_id (UUID)&#10;contract_address (VARCHAR)&#10;terms (JSONB)&#10;status (ENUM)&#10;created_at (TIMESTAMP)&#10;executed_at (TIMESTAMP)"
-          style="shape=rectangle;rounded=1;whiteSpace=wrap;align=left;spacingLeft=10;fillColor=#D6EAF8;" vertex="1" parent="1">
-          <mxGeometry x="780" y="100" width="260" height="220" as="geometry"/>
+        <!-- SMART CONTRACT -->
+        <mxCell id="contract_tbl" value="Smart_Contract&#10;--------------&#10;contract_id (UUID PK)&#10;transaction_id (UUID)&#10;contract_address (VARCHAR)&#10;terms (JSONB)&#10;status (ENUM)&#10;created_at (TIMESTAMP)&#10;executed_at (TIMESTAMP)"
+          style="shape=rectangle;whiteSpace=wrap;rounded=1;align=left;spacingLeft=8;fillColor=#E8F4FA;" vertex="1" parent="1">
+          <mxGeometry x="800" y="120" width="260" height="220" as="geometry"/>
         </mxCell>
 
-        <!-- OWNERSHIP RECORD TABLE -->
-        <mxCell id="own_tbl" value="Ownership_Record&#10;------------------&#10;ownership_id (UUID)&#10;user_id (UUID)&#10;parcel_id (UUID)&#10;start_date (TIMESTAMP)&#10;end_date (TIMESTAMP)&#10;ownership_type (ENUM)&#10;blockchain_hash (TEXT)"
-          style="shape=rectangle;rounded=1;whiteSpace=wrap;align=left;spacingLeft=10;fillColor=#E8DAEF;" vertex="1" parent="1">
-          <mxGeometry x="300" y="400" width="260" height="220" as="geometry"/>
+        <!-- OWNERSHIP RECORD -->
+        <mxCell id="own_tbl" value="Ownership_Record&#10;------------------&#10;ownership_id (UUID PK)&#10;user_id (UUID)&#10;parcel_id (UUID)&#10;start_date (TIMESTAMP)&#10;end_date (TIMESTAMP)&#10;ownership_type (ENUM)&#10;blockchain_hash (TEXT)"
+          style="shape=rectangle;whiteSpace=wrap;rounded=1;align=left;spacingLeft=8;fillColor=#F4ECF7;" vertex="1" parent="1">
+          <mxGeometry x="300" y="430" width="260" height="230" as="geometry"/>
         </mxCell>
 
-        <!-- DOCUMENT TABLE -->
-        <mxCell id="doc_tbl" value="Document&#10;------------------&#10;document_id (UUID)&#10;parcel_id (UUID)&#10;document_type (ENUM)&#10;document_hash (TEXT)&#10;file_url (TEXT)&#10;upload_date (TIMESTAMP)&#10;validation_status (ENUM)"
-          style="shape=rectangle;rounded=1;whiteSpace=wrap;align=left;spacingLeft=10;fillColor=#FADBD8;" vertex="1" parent="1">
-          <mxGeometry x="40" y="400" width="240" height="220" as="geometry"/>
+        <!-- DOCUMENT -->
+        <mxCell id="doc_tbl" value="Document&#10;--------------&#10;document_id (UUID PK)&#10;parcel_id (UUID)&#10;document_type (ENUM)&#10;document_hash (TEXT)&#10;file_url (TEXT)&#10;upload_date (TIMESTAMP)&#10;validation_status (ENUM)"
+          style="shape=rectangle;whiteSpace=wrap;rounded=1;align=left;spacingLeft=8;fillColor=#FDEDEC;" vertex="1" parent="1">
+          <mxGeometry x="40" y="430" width="240" height="230" as="geometry"/>
         </mxCell>
 
-        <!-- VALIDATION TABLE -->
-        <mxCell id="val_tbl" value="Validation&#10;------------------&#10;validation_id (UUID)&#10;parcel_id (UUID)&#10;validator_id (UUID)&#10;validation_type (ENUM)&#10;validation_date (TIMESTAMP)&#10;outcome (ENUM)&#10;notes (TEXT)"
-          style="shape=rectangle;rounded=1;whiteSpace=wrap;align=left;spacingLeft=10;fillColor=#FCF3CF;" vertex="1" parent="1">
-          <mxGeometry x="600" y="400" width="260" height="220" as="geometry"/>
+        <!-- VALIDATION -->
+        <mxCell id="val_tbl" value="Validation&#10;--------------&#10;validation_id (UUID PK)&#10;parcel_id (UUID)&#10;validator_id (UUID)&#10;validation_type (ENUM)&#10;validation_date (TIMESTAMP)&#10;outcome (ENUM)&#10;notes (TEXT)"
+          style="shape=rectangle;whiteSpace=wrap;rounded=1;align=left;spacingLeft=8;fillColor=#FEF9E7;" vertex="1" parent="1">
+          <mxGeometry x="600" y="430" width="260" height="230" as="geometry"/>
         </mxCell>
 
-        <!-- TRANSACTION TABLE -->
-        <mxCell id="tx_tbl" value="Transaction&#10;------------------&#10;transaction_id (UUID)&#10;parcel_id (UUID)&#10;seller_id (UUID)&#10;buyer_id (UUID)&#10;transaction_date (TIMESTAMP)&#10;amount (DECIMAL)&#10;status (ENUM)&#10;blockchain_hash (TEXT)"
-          style="shape=rectangle;rounded=1;whiteSpace=wrap;align=left;spacingLeft=10;fillColor=#FDEBD0;" vertex="1" parent="1">
-          <mxGeometry x="900" y="380" width="280" height="240" as="geometry"/>
+        <!-- TRANSACTION -->
+        <mxCell id="tx_tbl" value="Transaction&#10;--------------&#10;transaction_id (UUID PK)&#10;parcel_id (UUID)&#10;seller_id (UUID)&#10;buyer_id (UUID)&#10;transaction_date (TIMESTAMP)&#10;amount (DECIMAL)&#10;status (ENUM)&#10;blockchain_hash (TEXT)"
+          style="shape=rectangle;whiteSpace=wrap;rounded=1;align=left;spacingLeft=8;fillColor=#FEF5E7;" vertex="1" parent="1">
+          <mxGeometry x="900" y="420" width="280" height="260" as="geometry"/>
         </mxCell>
 
-        <!-- DISPUTE TABLE -->
-        <mxCell id="dispute_tbl" value="Dispute&#10;------------------&#10;dispute_id (UUID)&#10;parcel_id (UUID)&#10;reported_by (UUID)&#10;dispute_type (ENUM)&#10;description (TEXT)&#10;status (ENUM)&#10;created_at (TIMESTAMP)&#10;resolved_at (TIMESTAMP)"
-          style="shape=rectangle;rounded=1;whiteSpace=wrap;align=left;spacingLeft=10;fillColor=#F5B7B1;" vertex="1" parent="1">
-          <mxGeometry x="1210" y="400" width="280" height="240" as="geometry"/>
+        <!-- DISPUTE -->
+        <mxCell id="dispute_tbl" value="Dispute&#10;--------------&#10;dispute_id (UUID PK)&#10;parcel_id (UUID)&#10;reported_by (UUID)&#10;dispute_type (ENUM)&#10;description (TEXT)&#10;status (ENUM)&#10;created_at (TIMESTAMP)&#10;resolved_at (TIMESTAMP)"
+          style="shape=rectangle;whiteSpace=wrap;rounded=1;align=left;spacingLeft=8;fillColor=#FDEDEC;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="440" width="280" height="260" as="geometry"/>
         </mxCell>
 
-        <!-- BLOCKCHAIN RECORD TABLE -->
-        <mxCell id="block_tbl" value="Blockchain_Record&#10;------------------&#10;record_id (UUID)&#10;block_hash (TEXT)&#10;transaction_hash (TEXT)&#10;block_number (BIGINT)&#10;timestamp (TIMESTAMP)&#10;data_payload (JSONB)&#10;gas_used (BIGINT)"
-          style="shape=rectangle;rounded=1;whiteSpace=wrap;align=left;spacingLeft=10;fillColor=#D4EFDF;" vertex="1" parent="1">
-          <mxGeometry x="950" y="700" width="260" height="240" as="geometry"/>
+        <!-- BLOCKCHAIN RECORD -->
+        <mxCell id="block_tbl" value="Blockchain_Record&#10;------------------&#10;record_id (UUID PK)&#10;block_hash (TEXT)&#10;transaction_hash (TEXT)&#10;block_number (BIGINT)&#10;timestamp (TIMESTAMP)&#10;data_payload (JSONB)&#10;gas_used (BIGINT)"
+          style="shape=rectangle;whiteSpace=wrap;rounded=1;align=left;spacingLeft=8;fillColor=#E9F7EF;" vertex="1" parent="1">
+          <mxGeometry x="950" y="760" width="260" height="240" as="geometry"/>
         </mxCell>
 
         <!-- RELATIONSHIPS -->
-        <mxCell edge="1" source="user_tbl" target="own_tbl" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell edge="1" source="parcel_tbl" target="own_tbl" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell edge="1" source="parcel_tbl" target="doc_tbl" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell edge="1" source="parcel_tbl" target="val_tbl" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell edge="1" source="user_tbl" target="val_tbl" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell edge="1" source="parcel_tbl" target="tx_tbl" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell edge="1" source="user_tbl" target="tx_tbl" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell edge="1" source="parcel_tbl" target="dispute_tbl" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell edge="1" source="user_tbl" target="dispute_tbl" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell edge="1" source="tx_tbl" target="contract_tbl" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell edge="1" source="tx_tbl" target="block_tbl" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell edge="1" source="user_tbl" target="own_tbl" style="endArrow=block;strokeColor=#555;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell edge="1" source="parcel_tbl" target="own_tbl" style="endArrow=block;strokeColor=#555;"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell edge="1" source="parcel_tbl" target="doc_tbl" style="endArrow=block;strokeColor=#555;"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell edge="1" source="parcel_tbl" target="val_tbl" style="endArrow=block;strokeColor=#555;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell edge="1" source="user_tbl" target="val_tbl" style="endArrow=block;strokeColor=#555;"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell edge="1" source="parcel_tbl" target="tx_tbl" style="endArrow=block;strokeColor=#555;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell edge="1" source="user_tbl" target="tx_tbl" style="endArrow=block;strokeColor=#555;"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell edge="1" source="parcel_tbl" target="dispute_tbl" style="endArrow=block;strokeColor=#555;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell edge="1" source="user_tbl" target="dispute_tbl" style="endArrow=block;strokeColor=#555;"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell edge="1" source="tx_tbl" target="contract_tbl" style="endArrow=block;strokeColor=#555;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell edge="1" source="tx_tbl" target="block_tbl" style="endArrow=block;strokeColor=#555;"><mxGeometry relative="1" as="geometry"/></mxCell>
 
       </root>
     </mxGraphModel>

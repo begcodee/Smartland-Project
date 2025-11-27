@@ -9,8 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapPin, FileText, Plus, Search, Eye, Upload, Camera } from 'lucide-react';
 import { mockLandParcels, blockchainService } from '@/lib/mockData';
-import { LandParcel } from '@/lib/mockData';
-import { useAuth } from '@/components/UserAuth';
+import { LandParcel, User } from '@/lib/mockData';
 import { LandImageUpload } from '@/components/LandImageUpload';
 import { DocumentScanner } from '@/components/DocumentScanner';
 import { EthereumIntegration } from '@/components/EthereumIntegration';
@@ -34,7 +33,11 @@ interface ScannedDocument {
   size: number;
 }
 
-export const LandRegistry = () => {
+interface LandRegistryProps {
+  currentUser?: User;
+}
+
+export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
   const [parcels, setParcels] = useState(mockLandParcels);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedParcel, setSelectedParcel] = useState<LandParcel | null>(null);
@@ -55,8 +58,6 @@ export const LandRegistry = () => {
     documents: [] as ScannedDocument[]
   });
 
-  const { currentUser } = useAuth();
-
   const canRegisterLand = currentUser?.role === 'landowner' || currentUser?.role === 'authority';
 
   const filteredParcels = parcels.filter(parcel => {
@@ -75,11 +76,6 @@ export const LandRegistry = () => {
   const handleRegisterLand = async () => {
     if (!newParcel.title || !newParcel.location.address || !newParcel.area) {
       toast.error('Please fill in all required fields');
-      return;
-    }
-
-    if (!currentUser?.walletAddress) {
-      toast.error('Please connect your Ethereum wallet first');
       return;
     }
 
@@ -346,7 +342,7 @@ export const LandRegistry = () => {
 
                 <Button 
                   onClick={handleRegisterLand} 
-                  disabled={isRegistering || !currentUser?.walletAddress}
+                  disabled={isRegistering}
                   className="w-full"
                   size="lg"
                 >

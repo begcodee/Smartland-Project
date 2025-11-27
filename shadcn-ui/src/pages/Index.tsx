@@ -435,7 +435,7 @@ export default function Index() {
         </div>
 
         {/* Main Land Registry Component */}
-        <LandRegistry />
+        <LandRegistry currentUser={currentUser} />
       </div>
     </div>
   );

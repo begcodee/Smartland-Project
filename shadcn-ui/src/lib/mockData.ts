@@ -1,275 +1,527 @@
-import { LandParcel, Dispute, Transfer, User } from '@/types';
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'landowner' | 'buyer' | 'authority' | 'arbitrator';
+  verificationStatus: 'verified' | 'pending' | 'rejected';
+  country: string;
+  phoneNumber: string;
+  organization?: string;
+  reputation?: {
+    score: number;
+    totalTransactions: number;
+    successfulTransactions: number;
+    disputesWon: number;
+    communityVotes: number;
+  };
+}
+
+export interface LandParcel {
+  id: string;
+  title: string;
+  description: string;
+  location: {
+    address: string;
+    coordinates: {
+      lat: number;
+      lng: number;
+    };
+    region: string;
+  };
+  area: number;
+  price: number;
+  status: 'available' | 'pending' | 'sold' | 'disputed';
+  ownerId: string;
+  documents: Array<{
+    id: string;
+    name: string;
+    type: string;
+    url: string;
+    uploadedAt: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+  type: 'residential' | 'commercial' | 'agricultural' | 'industrial';
+  comments: Array<{
+    id: string;
+    userId: string;
+    userName: string;
+    content: string;
+    timestamp: string;
+    likes: number;
+  }>;
+  // Legacy fields for compatibility
+  owner?: string;
+  value?: number;
+  registrationDate?: string;
+  lastTransfer?: string;
+  blockchainHash?: string;
+}
+
+export interface Dispute {
+  id: string;
+  landParcelId: string;
+  plaintiff: string;
+  defendant: string;
+  description: string;
+  evidence: string[];
+  status: 'filed' | 'under_review' | 'community_voting' | 'resolved';
+  filedDate: string;
+  votes?: {
+    for: number;
+    against: number;
+    abstain: number;
+  };
+  resolution?: string;
+}
+
+export interface Transfer {
+  id: string;
+  landParcelId: string;
+  from: string;
+  to: string;
+  amount: number;
+  status: 'pending' | 'completed' | 'cancelled';
+  initiatedDate: string;
+  completedDate?: string;
+  escrowAmount?: number;
+}
 
 export const mockUsers: User[] = [
   {
     id: 'U001',
-    name: 'John Doe',
-    email: 'john.doe@example.com',
+    name: 'Kwame Asante',
+    email: 'kwame.asante@gmail.com',
     role: 'landowner',
-    walletAddress: '0x742d35Cc6634C0532925a3b8D4C4Aa4e24B3b2f4',
     verificationStatus: 'verified',
-    profile: {
-      phone: '+91 9876543210',
-      address: '123 Green Valley Road',
-      city: 'New Delhi',
-      state: 'Delhi',
-      country: 'India',
-      postalCode: '110001',
-      dateOfBirth: '1985-03-15',
-      nationalId: 'AADHAAR-1234-5678-9012',
-      bio: 'Experienced landowner with multiple properties in Delhi NCR. Active in community development projects.',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John'
-    },
+    country: 'GH',
+    phoneNumber: '+233244123456',
     reputation: {
-      score: 92,
-      totalTransactions: 15,
-      successfulTransactions: 14,
-      disputesWon: 3,
-      disputesLost: 0,
-      communityVotes: 45,
-      lastUpdated: '2024-10-01'
-    },
-    joinedDate: '2020-01-15',
-    lastActive: '2024-10-08'
-  },
-  {
-    id: 'U002',
-    name: 'Maria Garcia',
-    email: 'maria.garcia@example.com',
-    role: 'landowner',
-    walletAddress: '0x8ba1f109551bD432803012645Hac136c5aa3c4F5',
-    verificationStatus: 'verified',
-    profile: {
-      phone: '+91 8765432109',
-      address: 'Village Rampur, Near Temple',
-      city: 'Meerut',
-      state: 'Uttar Pradesh',
-      country: 'India',
-      postalCode: '250001',
-      dateOfBirth: '1978-11-22',
-      nationalId: 'AADHAAR-2345-6789-0123',
-      bio: 'Agricultural landowner managing family farmlands for over 20 years. Advocate for sustainable farming practices.',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria'
-    },
-    reputation: {
-      score: 88,
-      totalTransactions: 8,
-      successfulTransactions: 8,
-      disputesWon: 1,
-      disputesLost: 1,
-      communityVotes: 32,
-      lastUpdated: '2024-09-28'
-    },
-    joinedDate: '2019-06-10',
-    lastActive: '2024-10-07'
-  },
-  {
-    id: 'U003',
-    name: 'District Authority',
-    email: 'authority@district.gov.in',
-    role: 'authority',
-    walletAddress: '0x9cb2g210662cE543904123756Ibd247d6bb4d5G6',
-    verificationStatus: 'verified',
-    profile: {
-      phone: '+91 1800-180-1551',
-      address: 'District Collectorate, Sector 17',
-      city: 'Gurgaon',
-      state: 'Haryana',
-      country: 'India',
-      postalCode: '122001',
-      dateOfBirth: '1975-08-10',
-      nationalId: 'GOVT-ID-789012',
-      bio: 'Official government authority responsible for land registration, verification, and dispute resolution in the district.',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Authority'
-    },
-    reputation: {
-      score: 98,
-      totalTransactions: 156,
-      successfulTransactions: 154,
-      disputesWon: 45,
-      disputesLost: 2,
-      communityVotes: 234,
-      lastUpdated: '2024-10-08'
-    },
-    joinedDate: '2018-01-01',
-    lastActive: '2024-10-09'
-  },
-  {
-    id: 'U004',
-    name: 'Ahmed Hassan',
-    email: 'ahmed.hassan@example.com',
-    role: 'buyer',
-    walletAddress: '0x4d5e6f7890abcdef1234567890abcdef12345678',
-    verificationStatus: 'verified',
-    profile: {
-      phone: '+91 9988776655',
-      address: '45 Business District, Tower A',
-      city: 'Gurgaon',
-      state: 'Haryana',
-      country: 'India',
-      postalCode: '122002',
-      dateOfBirth: '1990-12-05',
-      nationalId: 'AADHAAR-3456-7890-1234',
-      bio: 'Real estate investor and entrepreneur looking for commercial and residential properties in NCR region.',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ahmed'
-    },
-    reputation: {
-      score: 85,
+      score: 95,
       totalTransactions: 12,
       successfulTransactions: 11,
       disputesWon: 2,
-      disputesLost: 0,
-      communityVotes: 28,
-      lastUpdated: '2024-09-30'
-    },
-    joinedDate: '2021-03-20',
-    lastActive: '2024-10-08'
+      communityVotes: 45
+    }
+  },
+  {
+    id: 'U002',
+    name: 'Akosua Frimpong',
+    email: 'akosua.frimpong@yahoo.com',
+    role: 'buyer',
+    verificationStatus: 'verified',
+    country: 'GH',
+    phoneNumber: '+233201987654',
+    reputation: {
+      score: 88,
+      totalTransactions: 8,
+      successfulTransactions: 7,
+      disputesWon: 1,
+      communityVotes: 32
+    }
+  },
+  {
+    id: 'U003',
+    name: 'Ghana Land Commission',
+    email: 'admin@ghanalandcommission.gov.gh',
+    role: 'authority',
+    verificationStatus: 'verified',
+    country: 'GH',
+    phoneNumber: '+233302123456',
+    organization: 'Ghana Land Commission'
+  },
+  {
+    id: 'U004',
+    name: 'Dr. Ama Osei',
+    email: 'ama.osei@arbitrator.gh',
+    role: 'arbitrator',
+    verificationStatus: 'verified',
+    country: 'GH',
+    phoneNumber: '+233244567890',
+    organization: 'Ghana Arbitration Centre'
   },
   {
     id: 'U005',
-    name: 'Dr. Priya Sharma',
-    email: 'priya.sharma@arbitrator.org',
-    role: 'arbitrator',
-    walletAddress: '0x5e6f7890abcdef1234567890abcdef1234567890',
+    name: 'Kofi Mensah',
+    email: 'kofi.mensah@ama.gov.gh',
+    role: 'authority',
     verificationStatus: 'verified',
-    profile: {
-      phone: '+91 9876543211',
-      address: '78 Legal Complex, High Court Road',
-      city: 'New Delhi',
-      state: 'Delhi',
-      country: 'India',
-      postalCode: '110003',
-      dateOfBirth: '1982-04-18',
-      nationalId: 'BAR-ID-567890',
-      bio: 'Certified arbitrator with 15+ years experience in land and property disputes. PhD in Property Law from Delhi University.',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Priya'
-    },
-    reputation: {
-      score: 96,
-      totalTransactions: 89,
-      successfulTransactions: 87,
-      disputesWon: 67,
-      disputesLost: 3,
-      communityVotes: 156,
-      lastUpdated: '2024-10-05'
-    },
-    joinedDate: '2019-09-12',
-    lastActive: '2024-10-09'
+    country: 'GH',
+    phoneNumber: '+233302789012',
+    organization: 'Accra Metropolitan Assembly'
   }
 ];
 
 export const mockLandParcels: LandParcel[] = [
   {
     id: 'LP001',
-    title: 'Residential Plot - Sector 15',
-    owner: 'John Doe',
+    title: 'Prime Residential Plot in East Legon',
+    description: 'Beautiful residential plot in the prestigious East Legon area, perfect for building your dream home.',
     location: {
-      address: 'Plot 123, Sector 15, New Delhi, India',
-      coordinates: { lat: 28.5355, lng: 77.3910 }
+      address: 'East Legon, Accra',
+      coordinates: { lat: 5.6037, lng: -0.1870 },
+      region: 'Greater Accra'
     },
-    area: 500,
-    registrationDate: '2020-03-15',
-    lastTransfer: '2022-08-20',
-    value: 75000,
-    status: 'active',
-    documents: ['title_deed.pdf', 'survey_report.pdf'],
-    blockchainHash: '0x1a2b3c4d5e6f7890abcdef1234567890'
+    area: 2000,
+    price: 150000,
+    status: 'available',
+    ownerId: 'U001',
+    type: 'residential',
+    documents: [
+      {
+        id: 'DOC001',
+        name: 'Land Title Certificate',
+        type: 'PDF',
+        url: '/documents/land-title-001.pdf',
+        uploadedAt: '2024-01-15T10:00:00Z'
+      }
+    ],
+    createdAt: '2024-01-15T10:00:00Z',
+    updatedAt: '2024-01-15T10:00:00Z',
+    comments: [
+      {
+        id: 'C001',
+        userId: 'U002',
+        userName: 'Akosua Frimpong',
+        content: 'This looks like a great location! Is the title clean?',
+        timestamp: '2024-01-16T14:30:00Z',
+        likes: 3
+      },
+      {
+        id: 'C002',
+        userId: 'U001',
+        userName: 'Kwame Asante',
+        content: 'Yes, the title is completely clean with no encumbrances.',
+        timestamp: '2024-01-16T15:45:00Z',
+        likes: 2
+      }
+    ],
+    // Legacy compatibility
+    owner: 'Kwame Asante',
+    value: 150000,
+    registrationDate: '2024-01-15',
+    lastTransfer: '2024-01-15'
   },
   {
     id: 'LP002',
-    title: 'Agricultural Land - Village Rampur',
-    owner: 'Maria Garcia',
+    title: 'Commercial Space in Kumasi CBD',
+    description: 'Strategic commercial plot in the heart of Kumasi Central Business District.',
     location: {
-      address: 'Village Rampur, District Meerut, UP, India',
-      coordinates: { lat: 28.9845, lng: 77.7064 }
+      address: 'Kejetia, Kumasi',
+      coordinates: { lat: 6.6885, lng: -1.6244 },
+      region: 'Ashanti'
     },
-    area: 2000,
-    registrationDate: '2019-11-08',
-    lastTransfer: '2019-11-08',
-    value: 120000,
-    status: 'disputed',
-    documents: ['land_record.pdf', 'inheritance_doc.pdf'],
-    blockchainHash: '0x2b3c4d5e6f7890abcdef1234567890ab'
+    area: 1500,
+    price: 200000,
+    status: 'pending',
+    ownerId: 'U001',
+    type: 'commercial',
+    documents: [
+      {
+        id: 'DOC002',
+        name: 'Site Plan',
+        type: 'PDF',
+        url: '/documents/site-plan-002.pdf',
+        uploadedAt: '2024-01-10T09:00:00Z'
+      }
+    ],
+    createdAt: '2024-01-10T09:00:00Z',
+    updatedAt: '2024-01-20T16:00:00Z',
+    comments: [
+      {
+        id: 'C003',
+        userId: 'U003',
+        userName: 'Ghana Land Commission',
+        content: 'Documentation under review. Expected completion in 5 business days.',
+        timestamp: '2024-01-20T16:00:00Z',
+        likes: 1
+      }
+    ],
+    // Legacy compatibility
+    owner: 'Akosua Frimpong',
+    value: 200000,
+    registrationDate: '2024-01-10',
+    lastTransfer: '2024-01-20'
   },
   {
     id: 'LP003',
-    title: 'Commercial Plot - Market Area',
-    owner: 'Ahmed Hassan',
+    title: 'Agricultural Land in Sunyani',
+    description: 'Fertile agricultural land suitable for cocoa and food crop cultivation.',
     location: {
-      address: 'Shop 45, Market Complex, Gurgaon, Haryana',
-      coordinates: { lat: 28.4595, lng: 77.0266 }
+      address: 'Sunyani, Bono Region',
+      coordinates: { lat: 7.3392, lng: -2.3265 },
+      region: 'Bono'
     },
-    area: 150,
-    registrationDate: '2021-06-12',
-    lastTransfer: '2023-02-14',
-    value: 200000,
-    status: 'transfer_pending',
-    documents: ['commercial_license.pdf', 'property_tax.pdf'],
-    blockchainHash: '0x3c4d5e6f7890abcdef1234567890abcd'
+    area: 5000,
+    price: 75000,
+    status: 'available',
+    ownerId: 'U001',
+    type: 'agricultural',
+    documents: [
+      {
+        id: 'DOC003',
+        name: 'Survey Report',
+        type: 'PDF',
+        url: '/documents/survey-003.pdf',
+        uploadedAt: '2024-01-05T11:00:00Z'
+      }
+    ],
+    createdAt: '2024-01-05T11:00:00Z',
+    updatedAt: '2024-01-05T11:00:00Z',
+    comments: [
+      {
+        id: 'C004',
+        userId: 'U002',
+        userName: 'Akosua Frimpong',
+        content: 'What is the soil quality like for cocoa farming?',
+        timestamp: '2024-01-18T10:15:00Z',
+        likes: 2
+      }
+    ],
+    // Legacy compatibility
+    owner: 'Yaw Oppong',
+    value: 75000,
+    registrationDate: '2024-01-05',
+    lastTransfer: '2024-01-05'
+  },
+  {
+    id: 'LP004',
+    title: 'Beachfront Property in Cape Coast',
+    description: 'Stunning beachfront property with tourism development potential.',
+    location: {
+      address: 'Cape Coast, Central Region',
+      coordinates: { lat: 5.1053, lng: -1.2466 },
+      region: 'Central'
+    },
+    area: 3000,
+    price: 300000,
+    status: 'disputed',
+    ownerId: 'U001',
+    type: 'commercial',
+    documents: [
+      {
+        id: 'DOC004',
+        name: 'Environmental Impact Assessment',
+        type: 'PDF',
+        url: '/documents/eia-004.pdf',
+        uploadedAt: '2024-01-12T14:00:00Z'
+      }
+    ],
+    createdAt: '2024-01-12T14:00:00Z',
+    updatedAt: '2024-01-12T14:00:00Z',
+    comments: [
+      {
+        id: 'C005',
+        userId: 'U004',
+        userName: 'Dr. Ama Osei',
+        content: 'Excellent location for hospitality development. Ensure all coastal regulations are met.',
+        timestamp: '2024-01-19T09:30:00Z',
+        likes: 4
+      }
+    ],
+    // Legacy compatibility
+    owner: 'Efua Asamoah',
+    value: 300000,
+    registrationDate: '2024-01-12',
+    lastTransfer: '2024-01-12'
+  },
+  {
+    id: 'LP005',
+    title: 'Industrial Plot in Tema',
+    description: 'Large industrial plot near Tema Port, ideal for manufacturing and logistics.',
+    location: {
+      address: 'Tema Industrial Area',
+      coordinates: { lat: 5.6698, lng: -0.0166 },
+      region: 'Greater Accra'
+    },
+    area: 8000,
+    price: 500000,
+    status: 'available',
+    ownerId: 'U001',
+    type: 'industrial',
+    documents: [
+      {
+        id: 'DOC005',
+        name: 'Zoning Certificate',
+        type: 'PDF',
+        url: '/documents/zoning-005.pdf',
+        uploadedAt: '2024-01-08T13:00:00Z'
+      }
+    ],
+    createdAt: '2024-01-08T13:00:00Z',
+    updatedAt: '2024-01-08T13:00:00Z',
+    comments: [
+      {
+        id: 'C006',
+        userId: 'U005',
+        userName: 'Kofi Mensah',
+        content: 'This area has excellent infrastructure for industrial development.',
+        timestamp: '2024-01-17T11:45:00Z',
+        likes: 3
+      }
+    ],
+    // Legacy compatibility
+    owner: 'Ghana Land Commission',
+    value: 500000,
+    registrationDate: '2024-01-08',
+    lastTransfer: '2024-01-08'
   }
 ];
 
 export const mockDisputes: Dispute[] = [
   {
     id: 'D001',
-    landParcelId: 'LP002',
-    plaintiff: 'Raj Kumar',
-    defendant: 'Maria Garcia',
-    description: 'Claiming rightful inheritance of agricultural land based on family records',
-    evidence: ['family_tree.pdf', 'old_land_records.pdf', 'witness_statements.pdf'],
+    landParcelId: 'LP004',
+    plaintiff: 'Traditional Authority - Cape Coast',
+    defendant: 'Efua Asamoah',
+    description: 'Dispute over traditional land rights and proper acquisition procedures for coastal land development.',
+    evidence: ['traditional_claim.pdf', 'witness_statements.pdf', 'historical_documents.pdf'],
     status: 'community_voting',
-    filedDate: '2024-08-15',
+    filedDate: '2024-09-15T14:20:00Z',
     votes: {
-      support: 12,
-      against: 8,
-      abstain: 3
+      for: 23,
+      against: 18,
+      abstain: 5
     }
   },
   {
     id: 'D002',
-    landParcelId: 'LP001',
-    plaintiff: 'City Development Authority',
-    defendant: 'John Doe',
-    description: 'Land acquisition for public infrastructure development',
-    evidence: ['acquisition_notice.pdf', 'compensation_offer.pdf'],
+    landParcelId: 'LP002',
+    plaintiff: 'Neighboring Property Owner',
+    defendant: 'Akosua Frimpong',
+    description: 'Boundary dispute regarding the exact demarcation of commercial property in Kumasi CBD.',
+    evidence: ['survey_discrepancy.pdf', 'boundary_photos.pdf'],
     status: 'under_review',
-    filedDate: '2024-09-01',
-    arbitrator: 'District Magistrate Office'
+    filedDate: '2024-09-28T10:15:00Z'
+  },
+  {
+    id: 'D003',
+    landParcelId: 'LP001',
+    plaintiff: 'John Mensah',
+    defendant: 'Kwame Asante',
+    description: 'Claim of prior ownership and incomplete transfer documentation for East Legon residential plot.',
+    evidence: ['prior_agreement.pdf', 'payment_receipts.pdf'],
+    status: 'resolved',
+    filedDate: '2024-08-10T16:30:00Z',
+    resolution: 'Resolved in favor of defendant. Original documentation confirmed valid ownership transfer.'
   }
 ];
 
 export const mockTransfers: Transfer[] = [
   {
     id: 'T001',
-    landParcelId: 'LP003',
-    from: 'Ahmed Hassan',
-    to: 'Priya Sharma',
+    landParcelId: 'LP002',
+    from: 'Akosua Frimpong',
+    to: 'Ghana Investment Holdings',
     amount: 200000,
-    status: 'escrowed',
-    initiatedDate: '2024-09-10',
-    escrowHash: '0x4d5e6f7890abcdef1234567890abcdef'
+    status: 'pending',
+    initiatedDate: '2024-10-01T09:00:00Z',
+    escrowAmount: 20000
+  },
+  {
+    id: 'T002',
+    landParcelId: 'LP003',
+    from: 'Yaw Oppong',
+    to: 'Cocoa Farmers Cooperative',
+    amount: 75000,
+    status: 'completed',
+    initiatedDate: '2024-09-20T14:15:00Z',
+    completedDate: '2024-09-25T11:30:00Z'
+  },
+  {
+    id: 'T003',
+    landParcelId: 'LP001',
+    from: 'Previous Owner',
+    to: 'Kwame Asante',
+    amount: 150000,
+    status: 'completed',
+    initiatedDate: '2024-03-10T10:20:00Z',
+    completedDate: '2024-03-15T15:45:00Z'
+  },
+  {
+    id: 'T004',
+    landParcelId: 'LP005',
+    from: 'Ghana Land Commission',
+    to: 'Industrial Development Corp',
+    amount: 500000,
+    status: 'pending',
+    initiatedDate: '2024-10-05T13:10:00Z',
+    escrowAmount: 50000
   }
 ];
 
-// Simulate blockchain operations
+// Mock blockchain service for land registration
 export const blockchainService = {
-  registerLand: async (parcel: Omit<LandParcel, 'id' | 'blockchainHash'>) => {
-    const hash = `0x${Math.random().toString(16).substr(2, 32)}`;
-    return { success: true, hash, gasUsed: 150000 };
+  registerLand: async (landData: Omit<LandParcel, 'id' | 'createdAt' | 'updatedAt'>) => {
+    // Simulate blockchain registration
+    const id = `LP${Date.now()}`;
+    const timestamp = new Date().toISOString();
+    
+    const newParcel: LandParcel = {
+      ...landData,
+      id,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      comments: []
+    };
+    
+    // Add to mock data
+    mockLandParcels.push(newParcel);
+    
+    return {
+      success: true,
+      transactionHash: `0x${Math.random().toString(16).substr(2, 64)}`,
+      landParcel: newParcel,
+      hash: `0x${Math.random().toString(16).substr(2, 64)}`,
+      gasUsed: Math.floor(Math.random() * 50000) + 21000
+    };
   },
   
-  transferOwnership: async (parcelId: string, from: string, to: string) => {
-    const hash = `0x${Math.random().toString(16).substr(2, 32)}`;
-    return { success: true, hash, gasUsed: 120000 };
+  transferOwnership: async (landId: string, newOwnerId: string) => {
+    const parcel = mockLandParcels.find(p => p.id === landId);
+    if (parcel) {
+      parcel.ownerId = newOwnerId;
+      parcel.updatedAt = new Date().toISOString();
+      
+      return {
+        success: true,
+        transactionHash: `0x${Math.random().toString(16).substr(2, 64)}`,
+        landParcel: parcel
+      };
+    }
+    
+    return { success: false, error: 'Land parcel not found' };
   },
   
-  createDispute: async (dispute: Omit<Dispute, 'id'>) => {
-    const hash = `0x${Math.random().toString(16).substr(2, 32)}`;
-    return { success: true, hash, gasUsed: 180000 };
-  },
-  
-  voteOnDispute: async (disputeId: string, vote: 'support' | 'against' | 'abstain') => {
-    const hash = `0x${Math.random().toString(16).substr(2, 32)}`;
-    return { success: true, hash, gasUsed: 80000 };
+  verifyOwnership: async (landId: string, userId: string) => {
+    const parcel = mockLandParcels.find(p => p.id === landId);
+    return {
+      isOwner: parcel?.ownerId === userId,
+      verificationHash: `0x${Math.random().toString(16).substr(2, 64)}`
+    };
   }
 };
+
+// Export countries data for CountrySelector
+export const countries = [
+  { code: 'GH', name: 'Ghana', flag: '🇬🇭', dialCode: '+233' },
+  { code: 'NG', name: 'Nigeria', flag: '🇳🇬', dialCode: '+234' },
+  { code: 'KE', name: 'Kenya', flag: '🇰🇪', dialCode: '+254' },
+  { code: 'ZA', name: 'South Africa', flag: '🇿🇦', dialCode: '+27' },
+  { code: 'EG', name: 'Egypt', flag: '🇪🇬', dialCode: '+20' },
+  { code: 'MA', name: 'Morocco', flag: '🇲🇦', dialCode: '+212' },
+  { code: 'ET', name: 'Ethiopia', flag: '🇪🇹', dialCode: '+251' },
+  { code: 'TZ', name: 'Tanzania', flag: '🇹🇿', dialCode: '+255' },
+  { code: 'UG', name: 'Uganda', flag: '🇺🇬', dialCode: '+256' },
+  { code: 'RW', name: 'Rwanda', flag: '🇷🇼', dialCode: '+250' },
+  { code: 'SN', name: 'Senegal', flag: '🇸🇳', dialCode: '+221' },
+  { code: 'CI', name: 'Côte d\'Ivoire', flag: '🇨🇮', dialCode: '+225' },
+  { code: 'BF', name: 'Burkina Faso', flag: '🇧🇫', dialCode: '+226' },
+  { code: 'ML', name: 'Mali', flag: '🇲🇱', dialCode: '+223' },
+  { code: 'BJ', name: 'Benin', flag: '🇧🇯', dialCode: '+229' },
+  { code: 'TG', name: 'Togo', flag: '🇹🇬', dialCode: '+228' },
+  { code: 'LR', name: 'Liberia', flag: '🇱🇷', dialCode: '+231' },
+  { code: 'SL', name: 'Sierra Leone', flag: '🇸🇱', dialCode: '+232' },
+  { code: 'GN', name: 'Guinea', flag: '🇬🇳', dialCode: '+224' },
+  { code: 'GM', name: 'Gambia', flag: '🇬🇲', dialCode: '+220' }
+];

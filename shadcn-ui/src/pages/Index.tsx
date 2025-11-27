@@ -5,11 +5,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
   MapPin, FileText, Gavel, ArrowRightLeft, Shield, Users, LogIn, UserPlus,
-  Zap, TrendingUp, Award, Activity, Globe, Sparkles
+  Zap, TrendingUp, Award, Activity, Globe, Sparkles, BarChart3, Bell, Map
 } from 'lucide-react';
 import { mockLandParcels, mockDisputes, mockTransfers } from '@/lib/mockData';
 import { AuthProvider, useAuth, LoginForm, RegisterForm } from '@/components/UserAuth';
 import { UserProfileDialog } from '@/components/UserProfile';
+import { NotificationCenter } from '@/components/NotificationCenter';
+import { SearchAndFilter } from '@/components/SearchAndFilter';
+import { Analytics } from '@/components/Analytics';
+import { GhanaMapViewer } from '@/components/GhanaMapViewer';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
 import LandRegistry from '@/components/LandRegistry';
 import OwnershipTransfer from '@/components/OwnershipTransfer';
@@ -56,7 +60,7 @@ const Dashboard = () => {
     <div className="space-y-8">
       {/* Welcome Message */}
       {currentUser && (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-purple-600 to-green-500 p-8 text-white">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500 via-blue-600 to-purple-600 p-8 text-white">
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative flex items-center justify-between">
             <div className="space-y-2">
@@ -65,9 +69,12 @@ const Dashboard = () => {
                   <Sparkles className="h-6 w-6" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold">Welcome back, {currentUser.name}!</h2>
+                  <h2 className="text-2xl font-bold">Akwaaba, {currentUser.name}! 🇬🇭</h2>
                   <p className="text-white/80">
                     <span className="capitalize font-medium">{currentUser.role}</span>
+                    {currentUser.organization && (
+                      <span className="ml-2">• {currentUser.organization}</span>
+                    )}
                     {currentUser.reputation && (
                       <span className="ml-3 inline-flex items-center gap-1">
                         <Award className="h-4 w-4" />
@@ -83,47 +90,58 @@ const Dashboard = () => {
                 <Shield className="w-3 h-3 mr-1" />
                 {currentUser.verificationStatus}
               </Badge>
+              {currentUser.country && (
+                <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
+                  🇬🇭 {currentUser.country}
+                </Badge>
+              )}
             </div>
           </div>
         </div>
       )}
 
+      {/* Search and Filter */}
+      <SearchAndFilter 
+        onFiltersChange={(filters) => console.log('Filters changed:', filters)}
+        totalResults={userData.parcels.length}
+      />
+
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="group hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-blue-50 to-blue-100/50">
+        <Card className="group hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-green-50 to-green-100/50">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-blue-700">
+                <p className="text-sm font-medium text-green-700">
                   {currentUser?.role === 'landowner' ? 'My Properties' : 'Total Properties'}
                 </p>
-                <p className="text-3xl font-bold text-blue-900">{userData.parcels.length}</p>
-                <p className="text-xs text-blue-600 flex items-center gap-1">
+                <p className="text-3xl font-bold text-green-900">{userData.parcels.length}</p>
+                <p className="text-xs text-green-600 flex items-center gap-1">
                   <Zap className="h-3 w-3" />
                   On blockchain
                 </p>
               </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500 text-white group-hover:scale-110 transition-transform">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500 text-white group-hover:scale-110 transition-transform">
                 <MapPin className="h-6 w-6" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="group hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-green-50 to-green-100/50">
+        <Card className="group hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-blue-50 to-blue-100/50">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-green-700">Portfolio Value</p>
-                <p className="text-3xl font-bold text-green-900">
+                <p className="text-sm font-medium text-blue-700">Portfolio Value</p>
+                <p className="text-3xl font-bold text-blue-900">
                   ${userData.parcels.reduce((sum, p) => sum + p.value, 0).toLocaleString()}
                 </p>
-                <p className="text-xs text-green-600 flex items-center gap-1">
+                <p className="text-xs text-blue-600 flex items-center gap-1">
                   <TrendingUp className="h-3 w-3" />
                   USD equivalent
                 </p>
               </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500 text-white group-hover:scale-110 transition-transform">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500 text-white group-hover:scale-110 transition-transform">
                 <FileText className="h-6 w-6" />
               </div>
             </div>
@@ -288,15 +306,15 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Blockchain Network Status */}
+      {/* Ghana-specific Information */}
       <RoleBasedAccess allowedRoles={['authority', 'arbitrator']}>
-        <Card className="border-0 bg-gradient-to-r from-gray-50 to-gray-100">
+        <Card className="border-0 bg-gradient-to-r from-green-50 to-yellow-50">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-700">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600">
                 <Globe className="h-4 w-4 text-white" />
               </div>
-              Blockchain Network Status
+              Ghana Land Registry Network Status
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -325,26 +343,26 @@ const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-yellow-50 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl space-y-8">
         <div className="text-center space-y-4">
           <div className="flex justify-center mb-6">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-r from-green-600 to-yellow-600 text-white shadow-lg">
               <Shield className="h-8 w-8" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-            Land Registry
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 via-blue-600 to-yellow-600 bg-clip-text text-transparent">
+            🇬🇭 Ghana Land Registry
           </h1>
           <p className="text-lg text-muted-foreground max-w-md mx-auto">
-            Secure, transparent land ownership management powered by blockchain technology
+            Secure, transparent land ownership management powered by blockchain technology for Ghana
           </p>
         </div>
 
         <div className="flex gap-1 p-1 bg-white rounded-xl shadow-sm max-w-sm mx-auto">
           <Button
             variant={isLogin ? "default" : "ghost"}
-            className={`flex-1 rounded-lg ${isLogin ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : ''}`}
+            className={`flex-1 rounded-lg ${isLogin ? 'bg-gradient-to-r from-green-600 to-yellow-600' : ''}`}
             onClick={() => setIsLogin(true)}
           >
             <LogIn className="w-4 h-4 mr-2" />
@@ -352,7 +370,7 @@ const AuthPage = () => {
           </Button>
           <Button
             variant={!isLogin ? "default" : "ghost"}
-            className={`flex-1 rounded-lg ${!isLogin ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : ''}`}
+            className={`flex-1 rounded-lg ${!isLogin ? 'bg-gradient-to-r from-green-600 to-yellow-600' : ''}`}
             onClick={() => setIsLogin(false)}
           >
             <UserPlus className="w-4 h-4 mr-2" />
@@ -375,54 +393,69 @@ const MainApp = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-yellow-50">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div className="text-center flex-1">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-yellow-600 text-white shadow-lg">
                 <Shield className="h-6 w-6" />
               </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                Land Registry
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 via-blue-600 to-yellow-600 bg-clip-text text-transparent">
+                🇬🇭 Ghana Land Registry
               </h1>
             </div>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Secure, transparent, and tamper-proof land ownership management powered by blockchain smart contracts
             </p>
           </div>
-          <UserProfileDialog />
+          <div className="flex items-center gap-2">
+            <NotificationCenter />
+            <UserProfileDialog />
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
           <div className="flex justify-center">
-            <TabsList className="grid grid-cols-5 bg-white shadow-sm rounded-xl p-1">
-              <TabsTrigger value="dashboard" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white">
+            <TabsList className="grid grid-cols-7 bg-white shadow-sm rounded-xl p-1">
+              <TabsTrigger value="dashboard" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-yellow-600 data-[state=active]:text-white">
                 <Activity className="w-4 h-4" />
                 <span className="hidden sm:inline">Dashboard</span>
               </TabsTrigger>
-              <TabsTrigger value="registry" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white">
+              <TabsTrigger value="map" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-yellow-600 data-[state=active]:text-white">
+                <Map className="w-4 h-4" />
+                <span className="hidden sm:inline">Map</span>
+              </TabsTrigger>
+              <TabsTrigger value="registry" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-yellow-600 data-[state=active]:text-white">
                 <MapPin className="w-4 h-4" />
                 <span className="hidden sm:inline">Registry</span>
               </TabsTrigger>
-              <TabsTrigger value="transfer" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white">
+              <TabsTrigger value="transfer" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-yellow-600 data-[state=active]:text-white">
                 <ArrowRightLeft className="w-4 h-4" />
                 <span className="hidden sm:inline">Transfer</span>
               </TabsTrigger>
-              <TabsTrigger value="disputes" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white">
+              <TabsTrigger value="disputes" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-yellow-600 data-[state=active]:text-white">
                 <Gavel className="w-4 h-4" />
                 <span className="hidden sm:inline">Disputes</span>
               </TabsTrigger>
-              <TabsTrigger value="contracts" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white">
+              <TabsTrigger value="contracts" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-yellow-600 data-[state=active]:text-white">
                 <FileText className="w-4 h-4" />
                 <span className="hidden sm:inline">Contracts</span>
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-yellow-600 data-[state=active]:text-white">
+                <BarChart3 className="w-4 h-4" />
+                <span className="hidden sm:inline">Analytics</span>
               </TabsTrigger>
             </TabsList>
           </div>
 
           <TabsContent value="dashboard">
             <Dashboard />
+          </TabsContent>
+
+          <TabsContent value="map">
+            <GhanaMapViewer />
           </TabsContent>
 
           <TabsContent value="registry">
@@ -444,6 +477,12 @@ const MainApp = () => {
           <TabsContent value="contracts">
             <RoleBasedAccess allowedRoles={['authority', 'arbitrator']}>
               <SmartContractInterface />
+            </RoleBasedAccess>
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <RoleBasedAccess allowedRoles={['authority', 'arbitrator']}>
+              <Analytics />
             </RoleBasedAccess>
           </TabsContent>
         </Tabs>

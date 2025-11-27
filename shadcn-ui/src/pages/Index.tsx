@@ -1,83 +1,412 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-  Shield, Fingerprint, CreditCard, Globe, 
-  CheckCircle, Users, BarChart3, Settings,
-  Smartphone, Eye, Lock, User
+  Shield, User, Mail, Lock, Eye, EyeOff,
+  UserPlus, LogIn, MapPin, FileText, Gavel, Users
 } from 'lucide-react';
-import { GovernmentCardVerification } from '@/components/GovernmentCardVerification';
-import { PasskeyAuthentication } from '@/components/PasskeyAuthentication';
-import { AfricaMapViewer } from '@/components/AfricaMapViewer';
-import { VerificationAnalytics } from '@/components/VerificationAnalytics';
-import { BiometricSecurity } from '@/components/BiometricSecurity';
-import { AuthProvider } from '@/components/UserAuth';
+import { toast } from 'sonner';
+import { LandRegistry } from '@/components/LandRegistry';
 
-// Mock user for demonstration
-const mockUser = {
-  id: 'U001',
-  name: 'Amara Okafor',
-  email: 'amara.okafor@gov.ng',
-  role: 'government_official' as const,
-  verificationStatus: 'verified' as const,
-  country: 'NG',
-  phoneNumber: '+234901234567',
-  department: 'National Identity Management Commission'
-};
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'landowner' | 'buyer' | 'authority' | 'arbitrator';
+  verificationStatus: 'verified' | 'pending' | 'unverified';
+  country: string;
+  phoneNumber: string;
+}
 
-const MainApp = () => {
-  const [currentUser] = useState(mockUser);
-  const [activeTab, setActiveTab] = useState('verification');
+export default function Index() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  
+  // Form states
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [role, setRole] = useState<'landowner' | 'buyer' | 'authority' | 'arbitrator'>('landowner');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
-  const tabs = [
-    { id: 'verification', label: 'Card Verification', icon: <CreditCard className="w-4 h-4" /> },
-    { id: 'passkey', label: 'Passkey Security', icon: <Fingerprint className="w-4 h-4" /> },
-    { id: 'biometrics', label: 'Biometric Auth', icon: <Eye className="w-4 h-4" /> },
-    { id: 'map', label: 'Africa Coverage', icon: <Globe className="w-4 h-4" /> },
-    { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="w-4 h-4" /> }
-  ];
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
 
+    // Simulate login process
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Mock user data based on email
+    const mockUser: User = {
+      id: 'U001',
+      name: email === 'admin@landregistry.gh' ? 'Admin User' : 'Kwame Asante',
+      email: email,
+      role: email === 'admin@landregistry.gh' ? 'authority' : 'landowner',
+      verificationStatus: 'verified',
+      country: 'GH',
+      phoneNumber: '+233244123456'
+    };
+
+    setCurrentUser(mockUser);
+    setIsAuthenticated(true);
+    setIsLoading(false);
+    toast.success(`Welcome back, ${mockUser.name}!`);
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    // Simulate registration process
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    const newUser: User = {
+      id: Date.now().toString(),
+      name,
+      email,
+      role,
+      verificationStatus: 'pending',
+      country: 'GH',
+      phoneNumber
+    };
+
+    setCurrentUser(newUser);
+    setIsAuthenticated(true);
+    setIsLoading(false);
+    toast.success(`Account created successfully! Welcome, ${newUser.name}!`);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setEmail('');
+    setPassword('');
+    setName('');
+    setPhoneNumber('');
+    toast.info('Logged out successfully');
+  };
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'landowner': return <MapPin className="w-4 h-4" />;
+      case 'buyer': return <User className="w-4 h-4" />;
+      case 'authority': return <Shield className="w-4 h-4" />;
+      case 'arbitrator': return <Gavel className="w-4 h-4" />;
+      default: return <User className="w-4 h-4" />;
+    }
+  };
+
+  const getRoleDescription = (role: string) => {
+    switch (role) {
+      case 'landowner': return 'Register and manage your land properties';
+      case 'buyer': return 'Search and purchase land properties';
+      case 'authority': return 'Verify and approve land transactions';
+      case 'arbitrator': return 'Resolve land disputes and conflicts';
+      default: return 'Access land registry services';
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-gradient-to-r from-green-600 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Shield className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Ghana Land Registry</h1>
+            <p className="text-gray-600">Secure blockchain-powered land management</p>
+          </div>
+
+          <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-0">
+            <CardHeader className="text-center pb-4">
+              <Tabs value={authMode} onValueChange={(value) => setAuthMode(value as 'login' | 'register')} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="login" className="flex items-center gap-2">
+                    <LogIn className="w-4 h-4" />
+                    Login
+                  </TabsTrigger>
+                  <TabsTrigger value="register" className="flex items-center gap-2">
+                    <UserPlus className="w-4 h-4" />
+                    Register
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="login">
+                  <CardTitle className="text-xl text-gray-900">Welcome Back</CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Sign in to access your land registry account
+                  </CardDescription>
+                </TabsContent>
+
+                <TabsContent value="register">
+                  <CardTitle className="text-xl text-gray-900">Create Account</CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Join the Ghana Land Registry platform
+                  </CardDescription>
+                </TabsContent>
+              </Tabs>
+            </CardHeader>
+
+            <CardContent>
+              <Tabs value={authMode} onValueChange={(value) => setAuthMode(value as 'login' | 'register')}>
+                <TabsContent value="login">
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="Enter your email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          id="password"
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Enter your password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="pl-10 pr-10"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                          Signing in...
+                        </>
+                      ) : (
+                        <>
+                          <LogIn className="w-4 h-4 mr-2" />
+                          Sign In
+                        </>
+                      )}
+                    </Button>
+
+                    <div className="text-center text-sm text-gray-600">
+                      <p>Demo accounts:</p>
+                      <p className="text-xs">admin@landregistry.gh (Authority) | user@example.com (Landowner)</p>
+                    </div>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="register">
+                  <form onSubmit={handleRegister} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          id="name"
+                          type="text"
+                          placeholder="Enter your full name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-email">Email Address</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          id="reg-email"
+                          type="email"
+                          placeholder="Enter your email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="+233 24 123 4567"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="role">Account Type</Label>
+                      <Select value={role} onValueChange={(value) => setRole(value as any)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="landowner">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-green-600" />
+                              <div>
+                                <p className="font-medium">Landowner</p>
+                                <p className="text-xs text-gray-500">Register and manage properties</p>
+                              </div>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="buyer">
+                            <div className="flex items-center gap-2">
+                              <Users className="w-4 h-4 text-blue-600" />
+                              <div>
+                                <p className="font-medium">Buyer</p>
+                                <p className="text-xs text-gray-500">Search and purchase land</p>
+                              </div>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="authority">
+                            <div className="flex items-center gap-2">
+                              <Shield className="w-4 h-4 text-purple-600" />
+                              <div>
+                                <p className="font-medium">Government Authority</p>
+                                <p className="text-xs text-gray-500">Verify and approve transactions</p>
+                              </div>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="arbitrator">
+                            <div className="flex items-center gap-2">
+                              <Gavel className="w-4 h-4 text-orange-600" />
+                              <div>
+                                <p className="font-medium">Arbitrator</p>
+                                <p className="text-xs text-gray-500">Resolve land disputes</p>
+                              </div>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-password">Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          id="reg-password"
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Create a password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="pl-10 pr-10"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                          Creating account...
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="w-4 h-4 mr-2" />
+                          Create Account
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          <div className="text-center mt-6 text-sm text-gray-600">
+            <p>Secured by blockchain technology</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main application after authentication
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Modern Header */}
-      <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200/60">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-r from-green-600 to-blue-600 rounded-lg flex items-center justify-center">
                 <Shield className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-                  AfricaVerify
-                </h1>
-                <p className="text-sm text-slate-500">Government Card Verification Platform</p>
+                <h1 className="text-xl font-bold text-gray-900">Ghana Land Registry</h1>
+                <p className="text-sm text-gray-500">Blockchain-Powered Land Management</p>
               </div>
             </div>
             
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-indigo-600" />
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  {getRoleIcon(currentUser?.role || 'landowner')}
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-slate-900">{currentUser.name}</p>
+                  <p className="text-sm font-medium text-gray-900">{currentUser?.name}</p>
                   <div className="flex items-center gap-2">
-                    <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Verified
+                    <Badge variant="default" className="text-xs">
+                      {currentUser?.verificationStatus === 'verified' ? '✓ Verified' : '⏳ Pending'}
                     </Badge>
-                    <Badge variant="outline" className="text-xs text-slate-600 border-slate-200">
-                      {currentUser.role.replace('_', ' ')}
+                    <Badge variant="outline" className="text-xs">
+                      {currentUser?.role}
                     </Badge>
                   </div>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="border-slate-200 text-slate-600 hover:bg-slate-50">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                Logout
               </Button>
             </div>
           </div>
@@ -87,172 +416,27 @@ const MainApp = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm p-6 border border-slate-200/60">
+          <div className="bg-white rounded-xl shadow-sm p-6 border">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                  Welcome, {currentUser.name}
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Welcome back, {currentUser?.name}!
                 </h2>
-                <p className="text-slate-600">
-                  Secure government card verification across Africa with advanced biometric authentication.
+                <p className="text-gray-600">
+                  {getRoleDescription(currentUser?.role || 'landowner')}
                 </p>
               </div>
-              <div className="flex items-center gap-2 text-sm text-slate-500 bg-white/80 px-4 py-2 rounded-lg border border-slate-200/60">
-                <Lock className="w-4 h-4 text-green-600" />
-                <span>Passkey Enabled</span>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Shield className="w-4 h-4 text-green-600" />
+                <span>Secure & Verified</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white/60 backdrop-blur-sm p-1 rounded-xl shadow-sm border border-slate-200/60">
-            {tabs.map((tab) => (
-              <TabsTrigger 
-                key={tab.id} 
-                value={tab.id} 
-                className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              >
-                {tab.icon}
-                <span className="hidden sm:inline">{tab.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          <TabsContent value="verification" className="space-y-6">
-            <GovernmentCardVerification />
-          </TabsContent>
-
-          <TabsContent value="passkey" className="space-y-6">
-            <PasskeyAuthentication />
-          </TabsContent>
-
-          <TabsContent value="biometrics" className="space-y-6">
-            <BiometricSecurity />
-          </TabsContent>
-
-          <TabsContent value="map" className="space-y-6">
-            <Card className="bg-white/60 backdrop-blur-sm border-slate-200/60">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-slate-900">
-                  <Globe className="w-5 h-5 text-indigo-600" />
-                  Africa Coverage Map
-                </CardTitle>
-                <CardDescription className="text-slate-600">
-                  Government card verification coverage across African countries
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AfricaMapViewer />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="analytics" className="space-y-6">
-            <VerificationAnalytics />
-          </TabsContent>
-        </Tabs>
-
-        {/* Quick Stats Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
-          <Card className="bg-white/60 backdrop-blur-sm border-slate-200/60 hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl">
-                  <CreditCard className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">2,847</p>
-                  <p className="text-sm text-slate-500">Cards Verified Today</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/60 backdrop-blur-sm border-slate-200/60 hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl">
-                  <Fingerprint className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">98.7%</p>
-                  <p className="text-sm text-slate-500">Biometric Match Rate</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/60 backdrop-blur-sm border-slate-200/60 hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl">
-                  <Globe className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">54</p>
-                  <p className="text-sm text-slate-500">Countries Supported</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/60 backdrop-blur-sm border-slate-200/60 hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-r from-orange-100 to-red-100 rounded-xl">
-                  <Users className="w-6 h-6 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">156K</p>
-                  <p className="text-sm text-slate-500">Active Users</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Feature Highlights */}
-        <div className="mt-8">
-          <Card className="bg-white/60 backdrop-blur-sm border-slate-200/60">
-            <CardHeader>
-              <CardTitle className="text-slate-900">Platform Features</CardTitle>
-              <CardDescription className="text-slate-600">
-                Advanced government card verification with cutting-edge security
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl border border-indigo-100">
-                  <Fingerprint className="w-5 h-5 text-indigo-600" />
-                  <span className="text-sm font-medium text-slate-700">Passkey Authentication</span>
-                </div>
-                <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100">
-                  <Eye className="w-5 h-5 text-green-600" />
-                  <span className="text-sm font-medium text-slate-700">Biometric Verification</span>
-                </div>
-                <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
-                  <CreditCard className="w-5 h-5 text-purple-600" />
-                  <span className="text-sm font-medium text-slate-700">Multi-Country Support</span>
-                </div>
-                <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-100">
-                  <Smartphone className="w-5 h-5 text-orange-600" />
-                  <span className="text-sm font-medium text-slate-700">Mobile Integration</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Main Land Registry Component */}
+        <LandRegistry />
       </div>
     </div>
-  );
-};
-
-export default function Index() {
-  return (
-    <AuthProvider>
-      <MainApp />
-    </AuthProvider>
   );
 }

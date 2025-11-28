@@ -6,211 +6,155 @@
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
 
-        <!-- Swimlane-style background columns -->
-        <mxCell id="lane_owner" value="Land Owner" parent="1"
-          style="shape=rectangle;fillColor=#E3F2FD;strokeColor=#90CAF9;align=center;verticalAlign=top;fontStyle=1;">
-          <mxGeometry x="40" y="40" width="260" height="750" as="geometry"/>
+        <!-- Vertical separators (lanes) -->
+        <mxCell id="sep1" value="" style="shape=line;strokeWidth=2;strokeColor=#90CAF9;" vertex="1" parent="1">
+          <mxGeometry x="300" y="40" width="0" height="750" as="geometry"/>
+        </mxCell>
+        <mxCell id="sep2" value="" style="shape=line;strokeWidth=2;strokeColor=#CE93D8;" vertex="1" parent="1">
+          <mxGeometry x="580" y="40" width="0" height="750" as="geometry"/>
+        </mxCell>
+        <mxCell id="sep3" value="" style="shape=line;strokeWidth=2;strokeColor=#80DEEA;" vertex="1" parent="1">
+          <mxGeometry x="860" y="40" width="0" height="750" as="geometry"/>
+        </mxCell>
+        <mxCell id="sep4" value="" style="shape=line;strokeWidth=2;strokeColor=#A5D6A7;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="40" width="0" height="750" as="geometry"/>
         </mxCell>
 
-        <mxCell id="lane_system" value="SmartLand System" parent="1"
-          style="shape=rectangle;fillColor=#F3E5F5;strokeColor=#CE93D8;align=center;verticalAlign=top;fontStyle=1;">
-          <mxGeometry x="320" y="40" width="260" height="750" as="geometry"/>
+        <!-- Lane Labels -->
+        <mxCell id="label_owner" value="Land Owner"
+          style="text;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="100" y="50" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_system" value="SmartLand System"
+          style="text;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="350" y="50" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_ssi" value="SSI Service"
+          style="text;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="630" y="50" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_comm" value="Land Commission"
+          style="text;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="910" y="50" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_chain" value="Blockchain"
+          style="text;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="50" width="200" height="30" as="geometry"/>
         </mxCell>
 
-        <mxCell id="lane_ssi" value="SSI Service" parent="1"
-          style="shape=rectangle;fillColor=#E0F7FA;strokeColor=#80DEEA;align=center;verticalAlign=top;fontStyle=1;">
-          <mxGeometry x="600" y="40" width="260" height="750" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="lane_comm" value="Land Commission" parent="1"
-          style="shape=rectangle;fillColor=#FFF3E0;strokeColor=#FFCC80;align=center;verticalAlign=top;fontStyle=1;">
-          <mxGeometry x="880" y="40" width="260" height="750" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="lane_chain" value="Blockchain" parent="1"
-          style="shape=rectangle;fillColor=#E8F5E9;strokeColor=#A5D6A7;align=center;verticalAlign=top;fontStyle=1;">
-          <mxGeometry x="1160" y="40" width="260" height="750" as="geometry"/>
-        </mxCell>
-
-        <!-- Nodes in Land Owner lane -->
+        <!-- Shapes (NOW VISIBLE!) -->
         <mxCell id="start" value="Start" parent="1"
-          style="shape=ellipse;fillColor=#2ECC71;strokeColor=#1E8449;align=center;verticalAlign=middle;">
-          <mxGeometry x="130" y="90" width="80" height="40" as="geometry"/>
+          style="shape=ellipse;fillColor=#2ECC71;strokeColor=#1E8449;">
+          <mxGeometry x="140" y="120" width="80" height="40" as="geometry"/>
         </mxCell>
 
         <mxCell id="prepare_docs" value="Prepare Land Documents" parent="1"
-          style="shape=rectangle;rounded=1;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;whiteSpace=wrap;align=center;">
-          <mxGeometry x="90" y="160" width="160" height="60" as="geometry"/>
+          style="rounded=1;shape=rectangle;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;">
+          <mxGeometry x="100" y="200" width="160" height="60" as="geometry"/>
         </mxCell>
 
         <mxCell id="submit_reg" value="Submit Registration" parent="1"
-          style="shape=rectangle;rounded=1;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;whiteSpace=wrap;align=center;">
-          <mxGeometry x="90" y="240" width="160" height="60" as="geometry"/>
+          style="rounded=1;shape=rectangle;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;">
+          <mxGeometry x="100" y="300" width="160" height="60" as="geometry"/>
         </mxCell>
 
-        <mxCell id="reject_notify" value="Reject &amp; Notify" parent="1"
-          style="shape=rectangle;rounded=1;fillColor=#1E88E5;strokeColor=#0D47A1;fontColor=#FFFFFF;whiteSpace=wrap;align=center;">
-          <mxGeometry x="90" y="520" width="160" height="60" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="end_reject" value="End" parent="1"
-          style="shape=ellipse;fillColor=#E74C3C;strokeColor=#943126;align=center;verticalAlign=middle;">
-          <mxGeometry x="130" y="600" width="80" height="40" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="end_success" value="End" parent="1"
-          style="shape=ellipse;fillColor=#E74C3C;strokeColor=#943126;align=center;verticalAlign=middle;">
-          <mxGeometry x="130" y="700" width="80" height="40" as="geometry"/>
-        </mxCell>
-
-        <!-- Nodes in SmartLand System lane -->
         <mxCell id="receive_req" value="Receive Request" parent="1"
-          style="shape=rectangle;rounded=1;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;whiteSpace=wrap;align=center;">
-          <mxGeometry x="370" y="240" width="160" height="60" as="geometry"/>
+          style="rounded=1;shape=rectangle;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;">
+          <mxGeometry x="360" y="300" width="160" height="60" as="geometry"/>
         </mxCell>
 
         <mxCell id="initiate_ssi" value="Initiate SSI Verification" parent="1"
-          style="shape=rectangle;rounded=1;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;whiteSpace=wrap;align=center;">
-          <mxGeometry x="370" y="320" width="160" height="60" as="geometry"/>
+          style="rounded=1;shape=rectangle;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;">
+          <mxGeometry x="360" y="380" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="verify_id" value="Verify Digital Identity" parent="1"
+          style="rounded=1;shape=rectangle;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;">
+          <mxGeometry x="650" y="380" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="dec_identity" value="Identity Valid?"
+          style="shape=rhombus;fillColor=#F39C12;strokeColor=#D68910;" parent="1">
+          <mxGeometry x="660" y="480" width="140" height="80" as="geometry"/>
         </mxCell>
 
         <mxCell id="send_commission" value="Send to Land Commission" parent="1"
-          style="shape=rectangle;rounded=1;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;whiteSpace=wrap;align=center;">
-          <mxGeometry x="370" y="400" width="160" height="60" as="geometry"/>
+          style="rounded=1;shape=rectangle;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;">
+          <mxGeometry x="360" y="580" width="160" height="60" as="geometry"/>
         </mxCell>
 
-        <mxCell id="issue_cert" value="Issue Digital Certificate" parent="1"
-          style="shape=rectangle;rounded=1;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;whiteSpace=wrap;align=center;">
-          <mxGeometry x="370" y="620" width="160" height="60" as="geometry"/>
-        </mxCell>
-
-        <!-- Nodes in SSI lane -->
-        <mxCell id="verify_id" value="Verify Digital Identity" parent="1"
-          style="shape=rectangle;rounded=1;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;whiteSpace=wrap;align=center;">
-          <mxGeometry x="650" y="320" width="160" height="60" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="dec_identity" value="Identity Valid?" parent="1"
-          style="shape=rhombus;fillColor=#F39C12;strokeColor=#D68910;align=center;verticalAlign=middle;whiteSpace=wrap;">
-          <mxGeometry x="660" y="400" width="140" height="80" as="geometry"/>
-        </mxCell>
-
-        <!-- Nodes in Land Commission lane -->
         <mxCell id="validate_rights" value="Validate Land Rights" parent="1"
-          style="shape=rectangle;rounded=1;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;whiteSpace=wrap;align=center;">
-          <mxGeometry x="930" y="340" width="160" height="60" as="geometry"/>
+          style="rounded=1;shape=rectangle;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;">
+          <mxGeometry x="930" y="380" width="160" height="60" as="geometry"/>
         </mxCell>
 
         <mxCell id="review_docs" value="Review Documents" parent="1"
-          style="shape=rectangle;rounded=1;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;whiteSpace=wrap;align=center;">
-          <mxGeometry x="930" y="420" width="160" height="60" as="geometry"/>
+          style="rounded=1;shape=rectangle;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;">
+          <mxGeometry x="930" y="460" width="160" height="60" as="geometry"/>
         </mxCell>
 
-        <mxCell id="dec_docs" value="Documents Valid?" parent="1"
-          style="shape=rhombus;fillColor=#F39C12;strokeColor=#D68910;align=center;verticalAlign=middle;whiteSpace=wrap;">
-          <mxGeometry x="940" y="500" width="140" height="80" as="geometry"/>
+        <mxCell id="dec_docs" value="Documents Valid?"
+          style="shape=rhombus;fillColor=#F39C12;strokeColor=#D68910;" parent="1">
+          <mxGeometry x="940" y="560" width="140" height="80" as="geometry"/>
         </mxCell>
 
-        <!-- Node in Blockchain lane -->
         <mxCell id="create_block" value="Create Blockchain Record" parent="1"
-          style="shape=rectangle;rounded=1;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;whiteSpace=wrap;align=center;">
-          <mxGeometry x="1210" y="500" width="180" height="60" as="geometry"/>
+          style="rounded=1;shape=rectangle;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;">
+          <mxGeometry x="1210" y="560" width="180" height="60" as="geometry"/>
         </mxCell>
 
-        <!-- Edges: Land Owner lane -->
-        <mxCell id="e1" edge="1" parent="1" source="start" target="prepare_docs"
-          style="endArrow=classic;strokeColor=#555555;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="reject_notify" value="Reject &amp; Notify" parent="1"
+          style="rounded=1;shape=rectangle;fillColor=#1E88E5;strokeColor=#0D47A1;fontColor=#FFFFFF;">
+          <mxGeometry x="100" y="500" width="160" height="60" as="geometry"/>
         </mxCell>
 
-        <mxCell id="e2" edge="1" parent="1" source="prepare_docs" target="submit_reg"
-          style="endArrow=classic;strokeColor=#555555;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="issue_cert" value="Issue Digital Certificate" parent="1"
+          style="rounded=1;shape=rectangle;fillColor=#3498DB;strokeColor=#1F618D;fontColor=#FFFFFF;">
+          <mxGeometry x="360" y="700" width="160" height="60" as="geometry"/>
         </mxCell>
 
-        <!-- Submit registration to SmartLand System -->
-        <mxCell id="e3" edge="1" parent="1" source="submit_reg" target="receive_req"
-          style="endArrow=classic;strokeColor=#555555;orthogonalLoop=1;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="end_fail" value="End" parent="1"
+          style="shape=ellipse;fillColor=#E74C3C;strokeColor=#943126;">
+          <mxGeometry x="140" y="600" width="80" height="40" as="geometry"/>
         </mxCell>
 
-        <!-- SmartLand internal flow -->
-        <mxCell id="e4" edge="1" parent="1" source="receive_req" target="initiate_ssi"
-          style="endArrow=classic;strokeColor=#555555;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="end_success" value="End" parent="1"
+          style="shape=ellipse;fillColor=#E74C3C;strokeColor=#943126;">
+          <mxGeometry x="140" y="750" width="80" height="40" as="geometry"/>
         </mxCell>
 
-        <!-- To SSI verification -->
-        <mxCell id="e5" edge="1" parent="1" source="initiate_ssi" target="verify_id"
-          style="endArrow=classic;strokeColor=#555555;">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
+        <!-- Lines -->
+        <mxCell edge="1" source="start" target="prepare_docs" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell edge="1" source="prepare_docs" target="submit_reg" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell edge="1" source="submit_reg" target="receive_req" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-        <mxCell id="e6" edge="1" parent="1" source="verify_id" target="dec_identity"
-          style="endArrow=classic;strokeColor=#555555;">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
+        <mxCell edge="1" source="receive_req" target="initiate_ssi" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-        <!-- Identity decision: Yes -> Send to Land Commission -->
-        <mxCell id="e7" edge="1" parent="1" source="dec_identity" target="send_commission"
-          value="Yes" style="endArrow=classic;strokeColor=#555555;labelBackgroundColor=#FFFFFF;">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
+        <mxCell edge="1" source="initiate_ssi" target="verify_id" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-        <!-- Identity decision: No -> Reject & Notify -->
-        <mxCell id="e8" edge="1" parent="1" source="dec_identity" target="reject_notify"
-          value="No" style="endArrow=classic;strokeColor=#555555;labelBackgroundColor=#FFFFFF;">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
+        <mxCell edge="1" source="verify_id" target="dec_identity" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-        <!-- Send to Land Commission -->
-        <mxCell id="e9" edge="1" parent="1" source="send_commission" target="validate_rights"
-          style="endArrow=classic;strokeColor=#555555;">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
+        <mxCell edge="1" source="dec_identity" target="reject_notify" value="No" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-        <!-- Land Commission flow -->
-        <mxCell id="e10" edge="1" parent="1" source="validate_rights" target="review_docs"
-          style="endArrow=classic;strokeColor=#555555;">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
+        <mxCell edge="1" source="dec_identity" target="send_commission" value="Yes" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-        <mxCell id="e11" edge="1" parent="1" source="review_docs" target="dec_docs"
-          style="endArrow=classic;strokeColor=#555555;">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
+        <mxCell edge="1" source="send_commission" target="validate_rights" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-        <!-- Documents decision: Yes -> Blockchain record -->
-        <mxCell id="e12" edge="1" parent="1" source="dec_docs" target="create_block"
-          value="Yes" style="endArrow=classic;strokeColor=#555555;labelBackgroundColor=#FFFFFF;">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
+        <mxCell edge="1" source="validate_rights" target="review_docs" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-        <!-- Documents decision: No -> Reject & Notify -->
-        <mxCell id="e13" edge="1" parent="1" source="dec_docs" target="reject_notify"
-          value="No" style="endArrow=classic;strokeColor=#555555;labelBackgroundColor=#FFFFFF;">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
+        <mxCell edge="1" source="review_docs" target="dec_docs" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-        <!-- Blockchain to Issue Certificate -->
-        <mxCell id="e14" edge="1" parent="1" source="create_block" target="issue_cert"
-          style="endArrow=classic;strokeColor=#555555;">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
+        <mxCell edge="1" source="dec_docs" target="reject_notify" value="No" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-        <!-- Reject & Notify to End -->
-        <mxCell id="e15" edge="1" parent="1" source="reject_notify" target="end_reject"
-          style="endArrow=classic;strokeColor=#555555;">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
+        <mxCell edge="1" source="dec_docs" target="create_block" value="Yes" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-        <!-- Issue Certificate to successful End -->
-        <mxCell id="e16" edge="1" parent="1" source="issue_cert" target="end_success"
-          style="endArrow=classic;strokeColor=#555555;">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
+        <mxCell edge="1" source="create_block" target="issue_cert" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell edge="1" source="reject_notify" target="end_fail" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell edge="1" source="issue_cert" target="end_success" style="endArrow=classic;strokeColor=#555;" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
       </root>
     </mxGraphModel>
   </diagram>
 </mxfile>
+

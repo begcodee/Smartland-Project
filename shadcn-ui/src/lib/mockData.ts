@@ -14,6 +14,22 @@ export interface User {
     disputesWon: number;
     communityVotes: number;
   };
+  creditScore?: {
+    score: number;
+    rating: 'Excellent' | 'Good' | 'Fair' | 'Poor';
+    paymentHistory: number;
+    creditUtilization: number;
+    lengthOfHistory: number;
+    newCredit: number;
+    creditMix: number;
+  };
+  financialProfile?: {
+    monthlyIncome: number;
+    assets: number;
+    liabilities: number;
+    netWorth: number;
+    bankingHistory: number; // years
+  };
 }
 
 export interface LandParcel {
@@ -29,7 +45,7 @@ export interface LandParcel {
     region: string;
   };
   area: number;
-  price: number;
+  price: number; // Now in Ghana Cedis
   status: 'available' | 'pending' | 'sold' | 'disputed';
   ownerId: string;
   documents: Array<{
@@ -80,7 +96,7 @@ export interface Transfer {
   landParcelId: string;
   from: string;
   to: string;
-  amount: number;
+  amount: number; // Now in Ghana Cedis
   status: 'pending' | 'completed' | 'cancelled';
   initiatedDate: string;
   completedDate?: string;
@@ -90,18 +106,34 @@ export interface Transfer {
 export const mockUsers: User[] = [
   {
     id: 'U001',
-    name: 'Kwame Asante',
-    email: 'kwame.asante@gmail.com',
+    name: 'John Doe',
+    email: 'john.doe@gmail.com',
     role: 'landowner',
     verificationStatus: 'verified',
     country: 'GH',
     phoneNumber: '+233244123456',
     reputation: {
-      score: 95,
-      totalTransactions: 12,
-      successfulTransactions: 11,
-      disputesWon: 2,
+      score: 92,
+      totalTransactions: 15,
+      successfulTransactions: 14,
+      disputesWon: 3,
       communityVotes: 45
+    },
+    creditScore: {
+      score: 785,
+      rating: 'Excellent',
+      paymentHistory: 95,
+      creditUtilization: 25,
+      lengthOfHistory: 88,
+      newCredit: 82,
+      creditMix: 90
+    },
+    financialProfile: {
+      monthlyIncome: 8500,
+      assets: 450000,
+      liabilities: 125000,
+      netWorth: 325000,
+      bankingHistory: 12
     }
   },
   {
@@ -118,6 +150,22 @@ export const mockUsers: User[] = [
       successfulTransactions: 7,
       disputesWon: 1,
       communityVotes: 32
+    },
+    creditScore: {
+      score: 720,
+      rating: 'Good',
+      paymentHistory: 88,
+      creditUtilization: 35,
+      lengthOfHistory: 75,
+      newCredit: 70,
+      creditMix: 85
+    },
+    financialProfile: {
+      monthlyIncome: 6200,
+      assets: 180000,
+      liabilities: 45000,
+      netWorth: 135000,
+      bankingHistory: 8
     }
   },
   {
@@ -128,7 +176,14 @@ export const mockUsers: User[] = [
     verificationStatus: 'verified',
     country: 'GH',
     phoneNumber: '+233302123456',
-    organization: 'Ghana Land Commission'
+    organization: 'Ghana Land Commission',
+    reputation: {
+      score: 98,
+      totalTransactions: 250,
+      successfulTransactions: 248,
+      disputesWon: 45,
+      communityVotes: 890
+    }
   },
   {
     id: 'U004',
@@ -138,7 +193,14 @@ export const mockUsers: User[] = [
     verificationStatus: 'verified',
     country: 'GH',
     phoneNumber: '+233244567890',
-    organization: 'Ghana Arbitration Centre'
+    organization: 'Ghana Arbitration Centre',
+    reputation: {
+      score: 94,
+      totalTransactions: 67,
+      successfulTransactions: 65,
+      disputesWon: 42,
+      communityVotes: 156
+    }
   },
   {
     id: 'U005',
@@ -148,7 +210,14 @@ export const mockUsers: User[] = [
     verificationStatus: 'verified',
     country: 'GH',
     phoneNumber: '+233302789012',
-    organization: 'Accra Metropolitan Assembly'
+    organization: 'Accra Metropolitan Assembly',
+    reputation: {
+      score: 91,
+      totalTransactions: 134,
+      successfulTransactions: 131,
+      disputesWon: 28,
+      communityVotes: 445
+    }
   }
 ];
 
@@ -156,14 +225,14 @@ export const mockLandParcels: LandParcel[] = [
   {
     id: 'LP001',
     title: 'Prime Residential Plot in East Legon',
-    description: 'Beautiful residential plot in the prestigious East Legon area, perfect for building your dream home.',
+    description: 'Beautiful residential plot in the prestigious East Legon area, perfect for building your dream home. Located in a quiet neighborhood with excellent infrastructure.',
     location: {
       address: 'East Legon, Accra',
       coordinates: { lat: 5.6037, lng: -0.1870 },
       region: 'Greater Accra'
     },
     area: 2000,
-    price: 150000,
+    price: 450000, // GHS 450,000
     status: 'available',
     ownerId: 'U001',
     type: 'residential',
@@ -173,6 +242,13 @@ export const mockLandParcels: LandParcel[] = [
         name: 'Land Title Certificate',
         type: 'PDF',
         url: '/documents/land-title-001.pdf',
+        uploadedAt: '2024-01-15T10:00:00Z'
+      },
+      {
+        id: 'DOC002',
+        name: 'Survey Plan',
+        type: 'PDF',
+        url: '/documents/survey-plan-001.pdf',
         uploadedAt: '2024-01-15T10:00:00Z'
       }
     ],
@@ -190,35 +266,36 @@ export const mockLandParcels: LandParcel[] = [
       {
         id: 'C002',
         userId: 'U001',
-        userName: 'Kwame Asante',
+        userName: 'John Doe',
         content: 'Yes, the title is completely clean with no encumbrances.',
         timestamp: '2024-01-16T15:45:00Z',
         likes: 2
       }
     ],
     // Legacy compatibility
-    owner: 'Kwame Asante',
-    value: 150000,
+    owner: 'John Doe',
+    value: 450000,
     registrationDate: '2024-01-15',
-    lastTransfer: '2024-01-15'
+    lastTransfer: '2024-01-15',
+    blockchainHash: '0x1a2b3c4d5e6f7890abcdef1234567890abcdef12'
   },
   {
     id: 'LP002',
     title: 'Commercial Space in Kumasi CBD',
-    description: 'Strategic commercial plot in the heart of Kumasi Central Business District.',
+    description: 'Strategic commercial plot in the heart of Kumasi Central Business District. High foot traffic area with excellent business potential.',
     location: {
       address: 'Kejetia, Kumasi',
       coordinates: { lat: 6.6885, lng: -1.6244 },
       region: 'Ashanti'
     },
     area: 1500,
-    price: 200000,
+    price: 680000, // GHS 680,000
     status: 'pending',
     ownerId: 'U001',
     type: 'commercial',
     documents: [
       {
-        id: 'DOC002',
+        id: 'DOC003',
         name: 'Site Plan',
         type: 'PDF',
         url: '/documents/site-plan-002.pdf',
@@ -238,28 +315,28 @@ export const mockLandParcels: LandParcel[] = [
       }
     ],
     // Legacy compatibility
-    owner: 'Akosua Frimpong',
-    value: 200000,
+    owner: 'John Doe',
+    value: 680000,
     registrationDate: '2024-01-10',
     lastTransfer: '2024-01-20'
   },
   {
     id: 'LP003',
     title: 'Agricultural Land in Sunyani',
-    description: 'Fertile agricultural land suitable for cocoa and food crop cultivation.',
+    description: 'Fertile agricultural land suitable for cocoa and food crop cultivation. Rich soil with good drainage and access to water sources.',
     location: {
       address: 'Sunyani, Bono Region',
       coordinates: { lat: 7.3392, lng: -2.3265 },
       region: 'Bono'
     },
     area: 5000,
-    price: 75000,
+    price: 225000, // GHS 225,000
     status: 'available',
     ownerId: 'U001',
     type: 'agricultural',
     documents: [
       {
-        id: 'DOC003',
+        id: 'DOC004',
         name: 'Survey Report',
         type: 'PDF',
         url: '/documents/survey-003.pdf',
@@ -279,28 +356,28 @@ export const mockLandParcels: LandParcel[] = [
       }
     ],
     // Legacy compatibility
-    owner: 'Yaw Oppong',
-    value: 75000,
+    owner: 'John Doe',
+    value: 225000,
     registrationDate: '2024-01-05',
     lastTransfer: '2024-01-05'
   },
   {
     id: 'LP004',
     title: 'Beachfront Property in Cape Coast',
-    description: 'Stunning beachfront property with tourism development potential.',
+    description: 'Stunning beachfront property with tourism development potential. Direct beach access with panoramic ocean views.',
     location: {
       address: 'Cape Coast, Central Region',
       coordinates: { lat: 5.1053, lng: -1.2466 },
       region: 'Central'
     },
     area: 3000,
-    price: 300000,
+    price: 950000, // GHS 950,000
     status: 'disputed',
     ownerId: 'U001',
     type: 'commercial',
     documents: [
       {
-        id: 'DOC004',
+        id: 'DOC005',
         name: 'Environmental Impact Assessment',
         type: 'PDF',
         url: '/documents/eia-004.pdf',
@@ -320,28 +397,28 @@ export const mockLandParcels: LandParcel[] = [
       }
     ],
     // Legacy compatibility
-    owner: 'Efua Asamoah',
-    value: 300000,
+    owner: 'John Doe',
+    value: 950000,
     registrationDate: '2024-01-12',
     lastTransfer: '2024-01-12'
   },
   {
     id: 'LP005',
     title: 'Industrial Plot in Tema',
-    description: 'Large industrial plot near Tema Port, ideal for manufacturing and logistics.',
+    description: 'Large industrial plot near Tema Port, ideal for manufacturing and logistics. Excellent transportation links and utilities.',
     location: {
       address: 'Tema Industrial Area',
       coordinates: { lat: 5.6698, lng: -0.0166 },
       region: 'Greater Accra'
     },
     area: 8000,
-    price: 500000,
+    price: 1200000, // GHS 1,200,000
     status: 'available',
     ownerId: 'U001',
     type: 'industrial',
     documents: [
       {
-        id: 'DOC005',
+        id: 'DOC006',
         name: 'Zoning Certificate',
         type: 'PDF',
         url: '/documents/zoning-005.pdf',
@@ -361,10 +438,106 @@ export const mockLandParcels: LandParcel[] = [
       }
     ],
     // Legacy compatibility
-    owner: 'Ghana Land Commission',
-    value: 500000,
+    owner: 'John Doe',
+    value: 1200000,
     registrationDate: '2024-01-08',
     lastTransfer: '2024-01-08'
+  },
+  {
+    id: 'LP006',
+    title: 'Luxury Residential Estate in Trasacco',
+    description: 'Premium residential plot in the exclusive Trasacco Valley Estate. Gated community with 24/7 security and modern amenities.',
+    location: {
+      address: 'Trasacco Valley, East Legon',
+      coordinates: { lat: 5.6125, lng: -0.1785 },
+      region: 'Greater Accra'
+    },
+    area: 1800,
+    price: 850000, // GHS 850,000
+    status: 'available',
+    ownerId: 'U002',
+    type: 'residential',
+    documents: [
+      {
+        id: 'DOC007',
+        name: 'Land Title Certificate',
+        type: 'PDF',
+        url: '/documents/land-title-006.pdf',
+        uploadedAt: '2024-02-01T10:00:00Z'
+      }
+    ],
+    createdAt: '2024-02-01T10:00:00Z',
+    updatedAt: '2024-02-01T10:00:00Z',
+    comments: [],
+    // Legacy compatibility
+    owner: 'Akosua Frimpong',
+    value: 850000,
+    registrationDate: '2024-02-01',
+    lastTransfer: '2024-02-01'
+  },
+  {
+    id: 'LP007',
+    title: 'Mixed-Use Development Plot in Spintex',
+    description: 'Versatile plot suitable for mixed-use development. Located on main Spintex road with high visibility and accessibility.',
+    location: {
+      address: 'Spintex Road, Accra',
+      coordinates: { lat: 5.6180, lng: -0.1050 },
+      region: 'Greater Accra'
+    },
+    area: 2500,
+    price: 720000, // GHS 720,000
+    status: 'available',
+    ownerId: 'U001',
+    type: 'commercial',
+    documents: [
+      {
+        id: 'DOC008',
+        name: 'Development Permit',
+        type: 'PDF',
+        url: '/documents/dev-permit-007.pdf',
+        uploadedAt: '2024-02-05T14:00:00Z'
+      }
+    ],
+    createdAt: '2024-02-05T14:00:00Z',
+    updatedAt: '2024-02-05T14:00:00Z',
+    comments: [],
+    // Legacy compatibility
+    owner: 'John Doe',
+    value: 720000,
+    registrationDate: '2024-02-05',
+    lastTransfer: '2024-02-05'
+  },
+  {
+    id: 'LP008',
+    title: 'Cocoa Farm in Ashanti Region',
+    description: 'Established cocoa farm with mature trees. Includes processing facilities and worker accommodation. Excellent investment opportunity.',
+    location: {
+      address: 'Konongo, Ashanti Region',
+      coordinates: { lat: 6.6167, lng: -1.2167 },
+      region: 'Ashanti'
+    },
+    area: 12000,
+    price: 580000, // GHS 580,000
+    status: 'available',
+    ownerId: 'U001',
+    type: 'agricultural',
+    documents: [
+      {
+        id: 'DOC009',
+        name: 'Farm Registration Certificate',
+        type: 'PDF',
+        url: '/documents/farm-cert-008.pdf',
+        uploadedAt: '2024-01-20T11:00:00Z'
+      }
+    ],
+    createdAt: '2024-01-20T11:00:00Z',
+    updatedAt: '2024-01-20T11:00:00Z',
+    comments: [],
+    // Legacy compatibility
+    owner: 'John Doe',
+    value: 580000,
+    registrationDate: '2024-01-20',
+    lastTransfer: '2024-01-20'
   }
 ];
 
@@ -373,7 +546,7 @@ export const mockDisputes: Dispute[] = [
     id: 'D001',
     landParcelId: 'LP004',
     plaintiff: 'Traditional Authority - Cape Coast',
-    defendant: 'Efua Asamoah',
+    defendant: 'John Doe',
     description: 'Dispute over traditional land rights and proper acquisition procedures for coastal land development.',
     evidence: ['traditional_claim.pdf', 'witness_statements.pdf', 'historical_documents.pdf'],
     status: 'community_voting',
@@ -388,7 +561,7 @@ export const mockDisputes: Dispute[] = [
     id: 'D002',
     landParcelId: 'LP002',
     plaintiff: 'Neighboring Property Owner',
-    defendant: 'Akosua Frimpong',
+    defendant: 'John Doe',
     description: 'Boundary dispute regarding the exact demarcation of commercial property in Kumasi CBD.',
     evidence: ['survey_discrepancy.pdf', 'boundary_photos.pdf'],
     status: 'under_review',
@@ -398,7 +571,7 @@ export const mockDisputes: Dispute[] = [
     id: 'D003',
     landParcelId: 'LP001',
     plaintiff: 'John Mensah',
-    defendant: 'Kwame Asante',
+    defendant: 'John Doe',
     description: 'Claim of prior ownership and incomplete transfer documentation for East Legon residential plot.',
     evidence: ['prior_agreement.pdf', 'payment_receipts.pdf'],
     status: 'resolved',
@@ -411,19 +584,19 @@ export const mockTransfers: Transfer[] = [
   {
     id: 'T001',
     landParcelId: 'LP002',
-    from: 'Akosua Frimpong',
+    from: 'John Doe',
     to: 'Ghana Investment Holdings',
-    amount: 200000,
+    amount: 680000, // GHS 680,000
     status: 'pending',
     initiatedDate: '2024-10-01T09:00:00Z',
-    escrowAmount: 20000
+    escrowAmount: 68000
   },
   {
     id: 'T002',
     landParcelId: 'LP003',
     from: 'Yaw Oppong',
     to: 'Cocoa Farmers Cooperative',
-    amount: 75000,
+    amount: 225000, // GHS 225,000
     status: 'completed',
     initiatedDate: '2024-09-20T14:15:00Z',
     completedDate: '2024-09-25T11:30:00Z'
@@ -432,8 +605,8 @@ export const mockTransfers: Transfer[] = [
     id: 'T003',
     landParcelId: 'LP001',
     from: 'Previous Owner',
-    to: 'Kwame Asante',
-    amount: 150000,
+    to: 'John Doe',
+    amount: 450000, // GHS 450,000
     status: 'completed',
     initiatedDate: '2024-03-10T10:20:00Z',
     completedDate: '2024-03-15T15:45:00Z'
@@ -443,10 +616,10 @@ export const mockTransfers: Transfer[] = [
     landParcelId: 'LP005',
     from: 'Ghana Land Commission',
     to: 'Industrial Development Corp',
-    amount: 500000,
+    amount: 1200000, // GHS 1,200,000
     status: 'pending',
     initiatedDate: '2024-10-05T13:10:00Z',
-    escrowAmount: 50000
+    escrowAmount: 120000
   }
 ];
 
@@ -610,3 +783,13 @@ export const countries = [
   { code: 'BT', name: 'Bhutan', flag: '🇧🇹', dialCode: '+975' },
   { code: 'MV', name: 'Maldives', flag: '🇲🇻', dialCode: '+960' }
 ];
+
+// Currency formatter for Ghana Cedis
+export const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('en-GH', {
+    style: 'currency',
+    currency: 'GHS',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};

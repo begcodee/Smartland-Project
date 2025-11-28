@@ -7,18 +7,21 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Progress } from '@/components/ui/progress';
 import { 
   Shield, User, Mail, Lock, Eye, EyeOff, Phone, Building,
   UserPlus, LogIn, MapPin, FileText, Gavel, Users, CheckCircle, Clock, AlertTriangle, Info,
   Home, Search, MessageSquare, TrendingUp, Settings, Bell, HelpCircle, ArrowUpDown, 
-  BarChart3, Activity, Star, Award, Zap, RefreshCw, ExternalLink
+  BarChart3, Activity, Star, Award, Zap, RefreshCw, ExternalLink, CreditCard, 
+  DollarSign, PieChart, Calendar, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { LandRegistry } from '@/components/LandRegistry';
 import { GhanaMapViewer } from '@/components/GhanaMapViewer';
 import { GhanaCardVerification } from '@/components/GhanaCardVerification';
 import { GovernmentCardVerification } from '@/components/GovernmentCardVerification';
-import { mockUsers, mockDisputes, mockTransfers } from '@/lib/mockData';
+import { mockUsers, mockDisputes, mockTransfers, formatCurrency } from '@/lib/mockData';
 
 interface User {
   id: string;
@@ -36,13 +39,21 @@ interface User {
     disputesWon: number;
     communityVotes: number;
   };
-  idVerification?: {
-    frontCardImage: string;
-    backCardImage: string;
-    faceImage: string;
-    cardNumber: string;
-    fullName: string;
-    status: 'pending' | 'verified' | 'rejected';
+  creditScore?: {
+    score: number;
+    rating: 'Excellent' | 'Good' | 'Fair' | 'Poor';
+    paymentHistory: number;
+    creditUtilization: number;
+    lengthOfHistory: number;
+    newCredit: number;
+    creditMix: number;
+  };
+  financialProfile?: {
+    monthlyIncome: number;
+    assets: number;
+    liabilities: number;
+    netWorth: number;
+    bankingHistory: number;
   };
 }
 
@@ -95,6 +106,22 @@ export default function Index() {
           successfulTransactions: 14,
           disputesWon: 3,
           communityVotes: 45
+        },
+        creditScore: {
+          score: 785,
+          rating: 'Excellent',
+          paymentHistory: 95,
+          creditUtilization: 25,
+          lengthOfHistory: 88,
+          newCredit: 82,
+          creditMix: 90
+        },
+        financialProfile: {
+          monthlyIncome: 8500,
+          assets: 450000,
+          liabilities: 125000,
+          netWorth: 325000,
+          bankingHistory: 12
         }
       };
     }
@@ -127,6 +154,22 @@ export default function Index() {
         successfulTransactions: 0,
         disputesWon: 0,
         communityVotes: 0
+      },
+      creditScore: {
+        score: 650,
+        rating: 'Fair',
+        paymentHistory: 70,
+        creditUtilization: 45,
+        lengthOfHistory: 60,
+        newCredit: 55,
+        creditMix: 65
+      },
+      financialProfile: {
+        monthlyIncome: 3500,
+        assets: 50000,
+        liabilities: 15000,
+        netWorth: 35000,
+        bankingHistory: 3
       }
     };
 
@@ -260,6 +303,13 @@ export default function Index() {
     }
   };
 
+  const getCreditScoreColor = (score: number) => {
+    if (score >= 750) return 'text-green-600';
+    if (score >= 700) return 'text-blue-600';
+    if (score >= 650) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
   // Show Ghana Card verification
   if (showVerification) {
     return (
@@ -267,7 +317,7 @@ export default function Index() {
         <div className="w-full max-w-2xl">
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-gradient-to-r from-green-600 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <img src="/assets/blockchain-logo_variant_3.png" alt="Blockchain" className="w-10 h-10" />
+              <img src="/images/Blockchain.jpg" alt="Blockchain" className="w-10 h-10" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Identity Verification Required</h1>
             <p className="text-gray-600">Complete Ghana Card verification to access the platform</p>
@@ -294,7 +344,7 @@ export default function Index() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-gradient-to-r from-green-600 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <img src="/assets/blockchain-logo_variant_4.png" alt="Blockchain" className="w-10 h-10" />
+              <img src="/images/Blockchain.jpg" alt="Blockchain" className="w-10 h-10" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Ghana Land Registry</h1>
             <p className="text-gray-600">Secure blockchain-powered land management</p>
@@ -646,18 +696,135 @@ export default function Index() {
               </div>
             </div>
             
-            {/* User Profile - Exactly like old system */}
+            {/* User Profile - Exactly like old system with dropdown */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                <User className="w-5 h-5 text-orange-600" />
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{currentUser?.name}</p>
-                <p className="text-xs text-gray-500 capitalize">{currentUser?.role}</p>
-              </div>
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <ExternalLink className="w-4 h-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-3 hover:bg-gray-50">
+                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                      <User className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900">{currentUser?.name}</p>
+                      <p className="text-xs text-gray-500 capitalize">{currentUser?.role}</p>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <DropdownMenuLabel>Account Information</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  
+                  {/* Credit Score Section */}
+                  {currentUser?.creditScore && (
+                    <div className="p-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="w-4 h-4 text-blue-600" />
+                          <span className="font-medium">Credit Score</span>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-lg font-bold ${getCreditScoreColor(currentUser.creditScore.score)}`}>
+                            {currentUser.creditScore.score}
+                          </div>
+                          <div className="text-xs text-gray-500">{currentUser.creditScore.rating}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span>Payment History</span>
+                          <span>{currentUser.creditScore.paymentHistory}%</span>
+                        </div>
+                        <Progress value={currentUser.creditScore.paymentHistory} className="h-1" />
+                        
+                        <div className="flex justify-between text-xs">
+                          <span>Credit Utilization</span>
+                          <span>{currentUser.creditScore.creditUtilization}%</span>
+                        </div>
+                        <Progress value={100 - currentUser.creditScore.creditUtilization} className="h-1" />
+                        
+                        <div className="flex justify-between text-xs">
+                          <span>Length of History</span>
+                          <span>{currentUser.creditScore.lengthOfHistory}%</span>
+                        </div>
+                        <Progress value={currentUser.creditScore.lengthOfHistory} className="h-1" />
+                      </div>
+                    </div>
+                  )}
+                  
+                  <DropdownMenuSeparator />
+                  
+                  {/* Financial Profile */}
+                  {currentUser?.financialProfile && (
+                    <div className="p-3 space-y-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <PieChart className="w-4 h-4 text-green-600" />
+                        <span className="font-medium">Financial Profile</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-gray-500">Monthly Income</span>
+                          <div className="font-medium">{formatCurrency(currentUser.financialProfile.monthlyIncome)}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Net Worth</span>
+                          <div className="font-medium">{formatCurrency(currentUser.financialProfile.netWorth)}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Total Assets</span>
+                          <div className="font-medium">{formatCurrency(currentUser.financialProfile.assets)}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Banking History</span>
+                          <div className="font-medium">{currentUser.financialProfile.bankingHistory} years</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <DropdownMenuSeparator />
+                  
+                  {/* Reputation Score */}
+                  {currentUser?.reputation && (
+                    <div className="p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Star className="w-4 h-4 text-yellow-600" />
+                        <span className="font-medium">Reputation Score</span>
+                        <span className="text-lg font-bold text-blue-600">{currentUser.reputation.score}/100</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-gray-500">Transactions</span>
+                          <div className="font-medium">{currentUser.reputation.totalTransactions}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Success Rate</span>
+                          <div className="font-medium">
+                            {Math.round((currentUser.reputation.successfulTransactions / currentUser.reputation.totalTransactions) * 100)}%
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Disputes Won</span>
+                          <div className="font-medium">{currentUser.reputation.disputesWon}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Community Votes</span>
+                          <div className="font-medium">{currentUser.reputation.communityVotes}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -756,7 +923,7 @@ export default function Index() {
               <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
             </div>
 
-            {/* Stats Cards - Exactly like old system */}
+            {/* Stats Cards - Updated with Ghana Cedis */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {/* My Properties */}
               <Card className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
@@ -764,7 +931,7 @@ export default function Index() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-blue-600 mb-1">My Properties</p>
-                      <p className="text-3xl font-bold text-gray-900">1</p>
+                      <p className="text-3xl font-bold text-gray-900">8</p>
                       <div className="flex items-center gap-1 mt-2">
                         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                         <span className="text-xs text-gray-500">On blockchain</span>
@@ -783,10 +950,10 @@ export default function Index() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-green-600 mb-1">Portfolio Value</p>
-                      <p className="text-3xl font-bold text-gray-900">$75,000</p>
+                      <p className="text-3xl font-bold text-gray-900">₵4.9M</p>
                       <div className="flex items-center gap-1 mt-2">
                         <TrendingUp className="w-3 h-3 text-green-500" />
-                        <span className="text-xs text-gray-500">USD equivalent</span>
+                        <span className="text-xs text-gray-500">Ghana Cedis</span>
                       </div>
                     </div>
                     <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">

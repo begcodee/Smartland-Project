@@ -9,11 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   Shield, User, Mail, Lock, Eye, EyeOff, Phone, Building,
-  UserPlus, LogIn, MapPin, FileText, Gavel, Users, CheckCircle, Clock, AlertTriangle, Info
+  UserPlus, LogIn, MapPin, FileText, Gavel, Users, CheckCircle, Clock, AlertTriangle, Info,
+  Home, Search, MessageSquare, TrendingUp, Settings, Bell, HelpCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { LandRegistry } from '@/components/LandRegistry';
+import { GhanaMapViewer } from '@/components/GhanaMapViewer';
 import { GhanaCardVerification } from '@/components/GhanaCardVerification';
+import { GovernmentCardVerification } from '@/components/GovernmentCardVerification';
 import { mockUsers } from '@/lib/mockData';
 
 interface User {
@@ -25,6 +28,13 @@ interface User {
   country: string;
   phoneNumber: string;
   organization?: string;
+  reputation?: {
+    score: number;
+    totalTransactions: number;
+    successfulTransactions: number;
+    disputesWon: number;
+    communityVotes: number;
+  };
   idVerification?: {
     frontCardImage: string;
     backCardImage: string;
@@ -42,7 +52,7 @@ export default function Index() {
   const [showPassword, setShowPassword] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [showVerification, setShowVerification] = useState(false);
-  const [showActorReview, setShowActorReview] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
   
   // Form states
   const [email, setEmail] = useState('');
@@ -77,7 +87,14 @@ export default function Index() {
               'landowner',
         verificationStatus: 'verified',
         country: 'GH',
-        phoneNumber: '+233244123456'
+        phoneNumber: '+233244123456',
+        reputation: {
+          score: 85,
+          totalTransactions: 5,
+          successfulTransactions: 4,
+          disputesWon: 1,
+          communityVotes: 12
+        }
       };
     }
 
@@ -102,7 +119,14 @@ export default function Index() {
       verificationStatus: 'pending',
       country: 'GH',
       phoneNumber,
-      organization: (role === 'authority' || role === 'arbitrator') ? organization : undefined
+      organization: (role === 'authority' || role === 'arbitrator') ? organization : undefined,
+      reputation: {
+        score: 0,
+        totalTransactions: 0,
+        successfulTransactions: 0,
+        disputesWon: 0,
+        communityVotes: 0
+      }
     };
 
     setCurrentUser(newUser);
@@ -137,7 +161,7 @@ export default function Index() {
     setPhoneNumber('');
     setOrganization('');
     setShowVerification(false);
-    setShowActorReview(false);
+    setActiveTab('dashboard');
     toast.info('Logged out successfully');
   };
 
@@ -243,6 +267,20 @@ export default function Index() {
           requirements: []
         };
     }
+  };
+
+  const getReputationColor = (score: number) => {
+    if (score >= 90) return 'text-green-600';
+    if (score >= 70) return 'text-blue-600';
+    if (score >= 50) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getReputationBadge = (score: number) => {
+    if (score >= 90) return 'Excellent';
+    if (score >= 70) return 'Good';
+    if (score >= 50) return 'Fair';
+    return 'New';
   };
 
   // Show Ghana Card verification
@@ -609,11 +647,11 @@ export default function Index() {
     );
   }
 
-  // Main application after authentication
+  // Main application after authentication - Modern Tabbed Interface
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
@@ -627,7 +665,8 @@ export default function Index() {
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3">
+              {/* User Profile Card */}
+              <div className="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                   {getRoleIcon(currentUser?.role || 'landowner')}
                 </div>
@@ -637,12 +676,19 @@ export default function Index() {
                     <Badge variant="default" className="text-xs">
                       {currentUser?.verificationStatus === 'verified' ? '✓ Verified' : '⏳ Pending'}
                     </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {currentUser?.role}
-                    </Badge>
+                    {currentUser?.reputation && (
+                      <Badge variant="outline" className={`text-xs ${getReputationColor(currentUser.reputation.score)}`}>
+                        {getReputationBadge(currentUser.reputation.score)} ({currentUser.reputation.score})
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>
+              
+              <Button variant="ghost" size="sm">
+                <Bell className="w-4 h-4" />
+              </Button>
+              
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 Logout
               </Button>
@@ -651,29 +697,189 @@ export default function Index() {
         </div>
       </header>
 
+      {/* Navigation Tabs */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="h-12 bg-transparent border-0 p-0">
+              <TabsTrigger 
+                value="dashboard" 
+                className="flex items-center gap-2 h-12 px-4 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none"
+              >
+                <Home className="w-4 h-4" />
+                Dashboard
+              </TabsTrigger>
+              <TabsTrigger 
+                value="registry" 
+                className="flex items-center gap-2 h-12 px-4 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none"
+              >
+                <FileText className="w-4 h-4" />
+                Land Registry
+              </TabsTrigger>
+              <TabsTrigger 
+                value="map" 
+                className="flex items-center gap-2 h-12 px-4 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none"
+              >
+                <MapPin className="w-4 h-4" />
+                Map View
+              </TabsTrigger>
+              <TabsTrigger 
+                value="disputes" 
+                className="flex items-center gap-2 h-12 px-4 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none"
+              >
+                <Gavel className="w-4 h-4" />
+                Disputes
+              </TabsTrigger>
+              <TabsTrigger 
+                value="verification" 
+                className="flex items-center gap-2 h-12 px-4 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none"
+              >
+                <Shield className="w-4 h-4" />
+                Verification
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </div>
+
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 border">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  Welcome back, {currentUser?.name}!
-                </h2>
-                <p className="text-gray-600">
-                  {getRoleDescription(currentUser?.role || 'landowner')}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Shield className="w-4 h-4 text-green-600" />
-                <span>Secure & Verified</span>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsContent value="dashboard" className="space-y-6">
+            {/* Welcome Section */}
+            <div className="bg-white rounded-xl shadow-sm p-6 border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Welcome back, {currentUser?.name}!
+                  </h2>
+                  <p className="text-gray-600">
+                    {getRoleDescription(currentUser?.role || 'landowner')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Shield className="w-4 h-4 text-green-600" />
+                  <span>Secure & Verified</span>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Main Land Registry Component */}
-        <LandRegistry currentUser={currentUser} />
+            {/* User Reputation Card */}
+            {currentUser?.reputation && (
+              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-blue-600" />
+                    Your Reputation Score
+                  </CardTitle>
+                  <CardDescription>
+                    Build trust through successful transactions and community participation
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <div className={`text-2xl font-bold ${getReputationColor(currentUser.reputation.score)}`}>
+                        {currentUser.reputation.score}
+                      </div>
+                      <div className="text-sm text-gray-600">Overall Score</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-gray-900">
+                        {currentUser.reputation.totalTransactions}
+                      </div>
+                      <div className="text-sm text-gray-600">Total Transactions</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {currentUser.reputation.successfulTransactions}
+                      </div>
+                      <div className="text-sm text-gray-600">Successful</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {currentUser.reputation.communityVotes}
+                      </div>
+                      <div className="text-sm text-gray-600">Community Votes</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab('registry')}>
+                <CardContent className="p-6 text-center">
+                  <FileText className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+                  <h3 className="font-semibold mb-2">Manage Properties</h3>
+                  <p className="text-sm text-gray-600">Register new land or view existing properties</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab('map')}>
+                <CardContent className="p-6 text-center">
+                  <MapPin className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                  <h3 className="font-semibold mb-2">Explore Map</h3>
+                  <p className="text-sm text-gray-600">View properties on interactive Ghana map</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab('verification')}>
+                <CardContent className="p-6 text-center">
+                  <Shield className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+                  <h3 className="font-semibold mb-2">Verification</h3>
+                  <p className="text-sm text-gray-600">Complete identity verification process</p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="registry">
+            <LandRegistry currentUser={currentUser} />
+          </TabsContent>
+
+          <TabsContent value="map">
+            <GhanaMapViewer />
+          </TabsContent>
+
+          <TabsContent value="disputes">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Dispute Resolution</h2>
+                  <p className="text-muted-foreground">Community-based arbitration system</p>
+                </div>
+              </div>
+              
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Gavel className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Dispute System Coming Soon</h3>
+                  <p className="text-gray-600 mb-4">
+                    Advanced dispute resolution with community voting and arbitrator mediation
+                  </p>
+                  <div className="text-sm text-gray-500">
+                    Features: Community voting • Expert arbitration • Evidence submission • Resolution tracking
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="verification">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Identity Verification</h2>
+                  <p className="text-muted-foreground">Verify government-issued identity documents</p>
+                </div>
+              </div>
+              
+              <GovernmentCardVerification />
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

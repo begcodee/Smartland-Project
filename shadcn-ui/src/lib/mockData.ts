@@ -55,6 +55,13 @@ export interface LandParcel {
     url: string;
     uploadedAt: string;
   }>;
+  images?: Array<{
+    id: string;
+    url: string;
+    caption: string;
+    type: 'main' | 'aerial' | 'boundary' | 'interior' | 'exterior';
+    uploadedAt: string;
+  }>;
   createdAt: string;
   updatedAt: string;
   type: 'residential' | 'commercial' | 'agricultural' | 'industrial';
@@ -236,6 +243,22 @@ export const mockLandParcels: LandParcel[] = [
     status: 'available',
     ownerId: 'U001',
     type: 'residential',
+    images: [
+      {
+        id: 'img1',
+        url: '/assets/property-1.jpg',
+        caption: 'Modern residential development with palm trees and contemporary architecture',
+        type: 'main',
+        uploadedAt: '2024-01-15T10:00:00Z'
+      },
+      {
+        id: 'img2',
+        url: '/assets/property-2.jpg',
+        caption: 'Aerial view of the residential complex showing layout and surroundings',
+        type: 'aerial',
+        uploadedAt: '2024-01-15T10:05:00Z'
+      }
+    ],
     documents: [
       {
         id: 'DOC001',
@@ -293,6 +316,15 @@ export const mockLandParcels: LandParcel[] = [
     status: 'pending',
     ownerId: 'U001',
     type: 'commercial',
+    images: [
+      {
+        id: 'img3',
+        url: '/assets/property-3.jpg',
+        caption: 'Commercial development area with modern infrastructure',
+        type: 'main',
+        uploadedAt: '2024-01-10T09:00:00Z'
+      }
+    ],
     documents: [
       {
         id: 'DOC003',
@@ -334,6 +366,15 @@ export const mockLandParcels: LandParcel[] = [
     status: 'available',
     ownerId: 'U001',
     type: 'agricultural',
+    images: [
+      {
+        id: 'img4',
+        url: '/assets/property-4.jpg',
+        caption: 'Expansive agricultural land with fertile soil for farming',
+        type: 'main',
+        uploadedAt: '2024-01-05T11:00:00Z'
+      }
+    ],
     documents: [
       {
         id: 'DOC004',
@@ -375,6 +416,15 @@ export const mockLandParcels: LandParcel[] = [
     status: 'disputed',
     ownerId: 'U001',
     type: 'commercial',
+    images: [
+      {
+        id: 'img5',
+        url: '/assets/property-5.jpg',
+        caption: 'Beachfront property with direct ocean access and development potential',
+        type: 'main',
+        uploadedAt: '2024-01-12T14:00:00Z'
+      }
+    ],
     documents: [
       {
         id: 'DOC005',

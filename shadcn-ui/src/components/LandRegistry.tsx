@@ -7,18 +7,19 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MapPin, FileText, Plus, Search, Eye, Upload, Camera, Zap, Hexagon, Shield } from 'lucide-react';
+import { MapPin, FileText, Plus, Search, Eye, Upload, Camera, Zap, Hexagon, Shield, Image as ImageIcon } from 'lucide-react';
 import { mockLandParcels, blockchainService, formatCurrency } from '@/lib/mockData';
 import { LandParcel, User } from '@/lib/mockData';
+import { ImageUpload } from '@/components/ImageUpload';
 import { toast } from 'sonner';
 
 interface LandImage {
   id: string;
   url: string;
   caption: string;
-  type: 'aerial' | 'boundary' | 'structure' | 'access' | 'general';
+  type: 'main' | 'aerial' | 'boundary' | 'interior' | 'exterior';
   uploadedAt: string;
-  size: number;
+  size?: number;
 }
 
 interface ScannedDocument {
@@ -40,7 +41,7 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
   const [selectedParcel, setSelectedParcel] = useState<LandParcel | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [showImageUpload, setShowImageUpload] = useState(false);
-  const [showDocumentScan, setShowDocumentScan] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [newParcel, setNewParcel] = useState({
     title: '',
     description: '',
@@ -90,6 +91,13 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
         status: 'available' as const,
         ownerId: currentUser?.id || '',
         type: newParcel.type,
+        images: newParcel.images.map((img, index) => ({
+          id: `IMG_${Date.now()}_${index}`,
+          url: img.url,
+          caption: img.caption,
+          type: img.type,
+          uploadedAt: new Date().toISOString()
+        })),
         documents: newParcel.documents.map((doc, index) => ({
           id: `DOC_${Date.now()}_${index}`,
           name: doc.name,
@@ -134,6 +142,17 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
     } finally {
       setIsRegistering(false);
     }
+  };
+
+  const handleImagesChange = (uploadedImages: any[]) => {
+    const images = uploadedImages.map(img => ({
+      id: img.id,
+      url: img.url,
+      caption: img.caption,
+      type: img.type,
+      uploadedAt: new Date().toISOString()
+    }));
+    setNewParcel({ ...newParcel, images });
   };
 
   const getStatusColor = (status: string) => {
@@ -293,6 +312,32 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                   </div>
                 </div>
 
+                {/* Image Upload Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-purple-600 bg-clip-text text-transparent">
+                      <Camera className="w-5 h-5 text-cyan-600" />
+                      Property Images
+                    </h3>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowImageUpload(!showImageUpload)}
+                      className="border-cyan-300 text-cyan-700 hover:bg-cyan-50"
+                    >
+                      {showImageUpload ? 'Hide Upload' : 'Add Images'}
+                    </Button>
+                  </div>
+                  
+                  {showImageUpload && (
+                    <ImageUpload
+                      onImagesChange={handleImagesChange}
+                      maxImages={8}
+                      existingImages={newParcel.images}
+                    />
+                  )}
+                </div>
+
                 <Button 
                   onClick={handleRegisterLand} 
                   disabled={isRegistering}
@@ -331,7 +376,28 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
       {/* Land Parcels Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredParcels.map((parcel) => (
-          <Card key={parcel.id} className="group hover:shadow-2xl transition-all duration-300 border-0 bg-gradient-to-br from-white to-slate-50 shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-1">
+          <Card key={parcel.id} className="group hover:shadow-2xl transition-all duration-300 border-0 bg-gradient-to-br from-white to-slate-50 shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-1 overflow-hidden">
+            {/* Property Image */}
+            {parcel.images && parcel.images.length > 0 && (
+              <div className="relative h-48 overflow-hidden">
+                <img
+                  src={parcel.images[0].url}
+                  alt={parcel.images[0].caption || parcel.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                <Badge className={`absolute top-3 right-3 ${getStatusColor(parcel.status)}`}>
+                  {parcel.status}
+                </Badge>
+                {parcel.images.length > 1 && (
+                  <Badge className="absolute bottom-3 right-3 bg-black/50 text-white border-0">
+                    <ImageIcon className="w-3 h-3 mr-1" />
+                    {parcel.images.length}
+                  </Badge>
+                )}
+              </div>
+            )}
+            
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
@@ -340,9 +406,11 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                     {parcel.title}
                   </CardTitle>
                 </div>
-                <Badge className={getStatusColor(parcel.status)}>
-                  {parcel.status}
-                </Badge>
+                {!parcel.images?.length && (
+                  <Badge className={getStatusColor(parcel.status)}>
+                    {parcel.status}
+                  </Badge>
+                )}
               </div>
               <CardDescription className="flex items-center gap-1 text-slate-600">
                 <MapPin className="w-4 h-4 text-cyan-500" />
@@ -391,7 +459,7 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                       View Details
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl bg-gradient-to-br from-white to-slate-50 border-0">
+                  <DialogContent className="max-w-4xl bg-gradient-to-br from-white to-slate-50 border-0 max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle className="text-2xl bg-gradient-to-r from-cyan-600 to-purple-600 bg-clip-text text-transparent">
                         {selectedParcel?.title}
@@ -404,7 +472,57 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                       </DialogDescription>
                     </DialogHeader>
                     {selectedParcel && (
-                      <div className="space-y-4">
+                      <div className="space-y-6">
+                        {/* Image Gallery */}
+                        {selectedParcel.images && selectedParcel.images.length > 0 && (
+                          <div className="space-y-4">
+                            <Label className="text-slate-700 font-medium">Property Images</Label>
+                            <div className="space-y-3">
+                              {/* Main Image */}
+                              <div className="relative aspect-video bg-slate-100 rounded-lg overflow-hidden">
+                                <img
+                                  src={selectedParcel.images[selectedImageIndex]?.url}
+                                  alt={selectedParcel.images[selectedImageIndex]?.caption || 'Property image'}
+                                  className="w-full h-full object-cover"
+                                />
+                                <Badge className="absolute bottom-3 left-3 bg-black/70 text-white border-0">
+                                  {selectedParcel.images[selectedImageIndex]?.type}
+                                </Badge>
+                              </div>
+                              
+                              {/* Image Caption */}
+                              {selectedParcel.images[selectedImageIndex]?.caption && (
+                                <p className="text-sm text-slate-600 italic">
+                                  {selectedParcel.images[selectedImageIndex].caption}
+                                </p>
+                              )}
+                              
+                              {/* Image Thumbnails */}
+                              {selectedParcel.images.length > 1 && (
+                                <div className="flex gap-2 overflow-x-auto pb-2">
+                                  {selectedParcel.images.map((image, index) => (
+                                    <button
+                                      key={image.id}
+                                      onClick={() => setSelectedImageIndex(index)}
+                                      className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                                        index === selectedImageIndex 
+                                          ? 'border-cyan-500 ring-2 ring-cyan-200' 
+                                          : 'border-slate-200 hover:border-cyan-300'
+                                      }`}
+                                    >
+                                      <img
+                                        src={image.url}
+                                        alt={image.caption || `Image ${index + 1}`}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <Label className="text-slate-700 font-medium">Owner</Label>

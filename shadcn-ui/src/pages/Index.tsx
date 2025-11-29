@@ -14,7 +14,7 @@ import {
   UserPlus, LogIn, MapPin, FileText, Gavel, Users, CheckCircle, Clock, AlertTriangle, Info,
   Home, Search, MessageSquare, TrendingUp, Settings, Bell, HelpCircle, ArrowUpDown, 
   BarChart3, Activity, Star, Award, Zap, RefreshCw, ExternalLink, CreditCard, 
-  DollarSign, PieChart, Calendar, ChevronDown, Hexagon
+  DollarSign, PieChart, Calendar, ChevronDown, Hexagon, LogOut
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { LandRegistry } from '@/components/LandRegistry';
@@ -317,7 +317,7 @@ export default function Index() {
         <div className="w-full max-w-2xl">
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-              <img src="/images/photo1764344059.jpg" alt="Blockchain" className="w-10 h-10" />
+              <img src="/images/photo1764432357.jpg" alt="Blockchain" className="w-10 h-10" />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-2">Identity Verification Required</h1>
             <p className="text-slate-300">Complete Ghana Card verification to access the platform</p>
@@ -344,7 +344,7 @@ export default function Index() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-              <img src="/images/photo1764344060.jpg" alt="Blockchain" className="w-10 h-10" />
+              <img src="/images/photo1764432357.jpg" alt="Blockchain" className="w-10 h-10" />
             </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-2">Ghana Land Registry</h1>
             <p className="text-slate-300">Secure blockchain-powered land management</p>
@@ -696,7 +696,7 @@ export default function Index() {
               </div>
             </div>
             
-            {/* User Profile - Updated with futuristic styling */}
+            {/* User Profile - Updated with futuristic styling and logout button */}
             <div className="flex items-center gap-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -820,7 +820,7 @@ export default function Index() {
                   
                   <DropdownMenuSeparator className="bg-slate-700" />
                   <DropdownMenuItem onClick={handleLogout} className="text-red-400 hover:bg-red-500/10">
-                    <ExternalLink className="w-4 h-4 mr-2" />
+                    <LogOut className="w-4 h-4 mr-2" />
                     Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>

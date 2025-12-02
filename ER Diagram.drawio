@@ -1,206 +1,183 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<mxfile host="app.diagrams.net">
-  <diagram id="SmartLandERD" name="ERD">
-    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" tooltips="1" connect="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="2000">
+<mxfile host="Electron" modified="2025-11-30T02:30:00.000Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36" etag="q_H7X12xGjYl5r4f_1wA" version="22.1.21" type="embed">
+  <diagram name="SmartLand_ERD" id="SmartLand_ERD">
+    <mxGraphModel dx="1100" dy="850" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
 
-        <!-- USER TABLE GROUP -->
-        <mxCell id="user_group" value="" style="group" vertex="1" parent="1">
-          <mxGeometry x="100" y="100" width="240" height="230" as="geometry"/>
+        <!-- ENTITY: User -->
+        <mxCell id="User" value="User" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="180" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="UserPK" value="PK  UserID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="User">
+          <mxGeometry y="26" width="180" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="UserDID" value="    DID (Decentralized ID)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="User">
+          <mxGeometry y="52" width="180" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="UserRole" value="    Role (Owner/Buyer/Admin)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="User">
+          <mxGeometry y="78" width="180" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="UserWallet" value="    WalletAddress" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="User">
+          <mxGeometry y="104" width="180" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="UserName" value="    FullName (Encrypted)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="User">
+          <mxGeometry y="130" width="180" height="26" as="geometry"/>
         </mxCell>
 
-        <mxCell id="user_header" value="User" parent="user_group"
-          style="shape=rectangle;fillColor=#A9D0F5;align=center;fontStyle=1;" vertex="1">
-          <mxGeometry x="0" y="0" width="240" height="30" as="geometry"/>
+        <!-- ENTITY: LandParcel -->
+        <mxCell id="LandParcel" value="LandParcel" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="400" y="80" width="200" height="176" as="geometry"/>
+        </mxCell>
+        <mxCell id="LandPK" value="PK  ParcelID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="LandParcel">
+          <mxGeometry y="26" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="LandOwnerFK" value="FK  CurrentOwnerID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="LandParcel">
+          <mxGeometry y="52" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="LandHash" value="    BlockchainHash (Unique)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="LandParcel">
+          <mxGeometry y="78" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="LandCoords" value="    GeoJSON_Coordinates" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="LandParcel">
+          <mxGeometry y="104" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="LandArea" value="    AreaSize" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="LandParcel">
+          <mxGeometry y="130" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="LandStatus" value="    Status (Registered/Dispute)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="LandParcel">
+          <mxGeometry y="156" width="200" height="26" as="geometry"/>
         </mxCell>
 
-        <mxCell id="user_fields" value="user_id (UUID PK)
-full_name (VARCHAR)
-email (VARCHAR)
-ssi_credential (TEXT)
-user_type (ENUM)
-verification_status (BOOLEAN)
-created_at (TIMESTAMP)" parent="user_group"
-          style="shape=rectangle;whiteSpace=wrap;align=left;spacingLeft=8;fillColor=#EAF2F8;" vertex="1">
-          <mxGeometry x="0" y="30" width="240" height="200" as="geometry"/>
+        <!-- ENTITY: TitleCertificate -->
+        <mxCell id="TitleCert" value="TitleCertificate" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="720" y="80" width="200" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="CertPK" value="PK  CertificateID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="TitleCert">
+          <mxGeometry y="26" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="CertParcelFK" value="FK  ParcelID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="TitleCert">
+          <mxGeometry y="52" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="CertToken" value="    TokenID (NFT)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="TitleCert">
+          <mxGeometry y="78" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="CertIssue" value="    IssueDate" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="TitleCert">
+          <mxGeometry y="104" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="CertTx" value="    IssueTxHash" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="TitleCert">
+          <mxGeometry y="130" width="200" height="26" as="geometry"/>
         </mxCell>
 
-
-        <!-- LAND PARCEL TABLE -->
-        <mxCell id="parcel_group" value="" style="group" vertex="1" parent="1">
-          <mxGeometry x="420" y="100" width="260" height="260" as="geometry"/>
+        <!-- ENTITY: Transaction -->
+        <mxCell id="Transaction" value="Transaction" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="400" y="360" width="200" height="176" as="geometry"/>
+        </mxCell>
+        <mxCell id="TxPK" value="PK  TransactionID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="Transaction">
+          <mxGeometry y="26" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="TxParcelFK" value="FK  ParcelID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Transaction">
+          <mxGeometry y="52" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="TxSellerFK" value="FK  SellerID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Transaction">
+          <mxGeometry y="78" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="TxBuyerFK" value="FK  BuyerID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Transaction">
+          <mxGeometry y="104" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="TxType" value="    Type (Sale/Transfer/Reg)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Transaction">
+          <mxGeometry y="130" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="TxStatus" value="    Status (Pending/Success)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Transaction">
+          <mxGeometry y="156" width="200" height="26" as="geometry"/>
         </mxCell>
 
-        <mxCell id="parcel_header" value="Land_Parcel" parent="parcel_group"
-          style="shape=rectangle;fillColor=#A9F5BC;align=center;fontStyle=1;" vertex="1">
-          <mxGeometry x="0" y="0" width="260" height="30" as="geometry"/>
+        <!-- ENTITY: Document -->
+        <mxCell id="Document" value="Document" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="80" y="360" width="200" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="DocPK" value="PK  DocumentID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="Document">
+          <mxGeometry y="26" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="DocParcelFK" value="FK  ParcelID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Document">
+          <mxGeometry y="52" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="DocType" value="    DocType (Survey/Deed)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Document">
+          <mxGeometry y="78" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="DocHash" value="    IPFSHash (Off-chain)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Document">
+          <mxGeometry y="104" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="DocValidBy" value="FK  ValidatedBy (Officer)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Document">
+          <mxGeometry y="130" width="200" height="26" as="geometry"/>
         </mxCell>
 
-        <mxCell id="parcel_fields" value="parcel_id (UUID PK)
-location_address (TEXT)
-coordinates (GEOGRAPHY)
-area_size (DECIMAL)
-boundaries (POLYGON)
-status (ENUM)
-registration_date (TIMESTAMP)
-blockchain_ref (TEXT)" parent="parcel_group"
-          style="shape=rectangle;whiteSpace=wrap;align=left;spacingLeft=8;fillColor=#E9FBE7;" vertex="1">
-          <mxGeometry x="0" y="30" width="260" height="230" as="geometry"/>
+        <!-- ENTITY: Dispute -->
+        <mxCell id="Dispute" value="Dispute" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="720" y="360" width="200" height="150" as="geometry"/>
         </mxCell>
-
-
-        <!-- OWNERSHIP RECORD TABLE -->
-        <mxCell id="own_group" value="" style="group" vertex="1" parent="1">
-          <mxGeometry x="300" y="420" width="260" height="220" as="geometry"/>
+        <mxCell id="DisputePK" value="PK  DisputeID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="Dispute">
+          <mxGeometry y="26" width="200" height="26" as="geometry"/>
         </mxCell>
-
-        <mxCell id="own_header" value="Ownership_Record" parent="own_group"
-          style="shape=rectangle;fillColor=#E2C7F7;align=center;fontStyle=1;" vertex="1">
-          <mxGeometry x="0" y="0" width="260" height="30" as="geometry"/>
+        <mxCell id="DisputeParcelFK" value="FK  ParcelID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Dispute">
+          <mxGeometry y="52" width="200" height="26" as="geometry"/>
         </mxCell>
-
-        <mxCell id="own_fields" value="ownership_id (UUID PK)
-user_id (UUID)
-parcel_id (UUID)
-start_date (TIMESTAMP)
-end_date (TIMESTAMP)
-ownership_type (ENUM)
-blockchain_hash (TEXT)" parent="own_group"
-          style="shape=rectangle;whiteSpace=wrap;align=left;spacingLeft=8;fillColor=#F5EAFB;" vertex="1">
-          <mxGeometry x="0" y="30" width="260" height="190" as="geometry"/>
+        <mxCell id="DisputeInitFK" value="FK  InitiatorID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Dispute">
+          <mxGeometry y="78" width="200" height="26" as="geometry"/>
         </mxCell>
-
-
-        <!-- DOCUMENT TABLE -->
-        <mxCell id="doc_group" value="" style="group" vertex="1" parent="1">
-          <mxGeometry x="40" y="420" width="240" height="230" as="geometry"/>
+        <mxCell id="DisputeReason" value="    Reason" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Dispute">
+          <mxGeometry y="104" width="200" height="26" as="geometry"/>
         </mxCell>
-
-        <mxCell id="doc_header" value="Document" parent="doc_group"
-          style="shape=rectangle;fillColor=#F5B7B1;align=center;fontStyle=1;" vertex="1">
-          <mxGeometry x="0" y="0" width="240" height="30" as="geometry"/>
+        <mxCell id="DisputeStatus" value="    Status (Active/Resolved)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Dispute">
+          <mxGeometry y="130" width="200" height="26" as="geometry"/>
         </mxCell>
-
-        <mxCell id="doc_fields" value="document_id (UUID PK)
-parcel_id (UUID)
-document_type (ENUM)
-document_hash (TEXT)
-file_url (TEXT)
-upload_date (TIMESTAMP)
-validation_status (ENUM)" parent="doc_group"
-          style="shape=rectangle;whiteSpace=wrap;align=left;spacingLeft=8;fillColor=#FDEDEC;" vertex="1">
-          <mxGeometry x="0" y="30" width="240" height="200" as="geometry"/>
-        </mxCell>
-
-
-        <!-- VALIDATION -->
-        <mxCell id="val_group" value="" style="group" vertex="1" parent="1">
-          <mxGeometry x="620" y="420" width="260" height="240" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="val_header" value="Validation" parent="val_group"
-          style="shape=rectangle;fillColor=#FCF3CF;align=center;fontStyle=1;" vertex="1">
-          <mxGeometry x="0" y="0" width="260" height="30" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="val_fields" value="validation_id (UUID PK)
-parcel_id (UUID)
-validator_id (UUID)
-validation_type (ENUM)
-validation_date (TIMESTAMP)
-outcome (ENUM)
-notes (TEXT)" parent="val_group"
-          style="shape=rectangle;whiteSpace=wrap;align=left;spacingLeft=8;fillColor=#FFF9E6;" vertex="1">
-          <mxGeometry x="0" y="30" width="260" height="210" as="geometry"/>
-        </mxCell>
-
-
-        <!-- TRANSACTION -->
-        <mxCell id="tx_group" value="" style="group" vertex="1" parent="1">
-          <mxGeometry x="900" y="410" width="280" height="260" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="tx_header" value="Transaction" parent="tx_group"
-          style="shape=rectangle;fillColor=#FDEBD0;align=center;fontStyle=1;" vertex="1">
-          <mxGeometry x="0" y="0" width="280" height="30" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="tx_fields" value="transaction_id (UUID PK)
-parcel_id (UUID)
-seller_id (UUID)
-buyer_id (UUID)
-transaction_date (TIMESTAMP)
-amount (DECIMAL)
-status (ENUM)
-blockchain_hash (TEXT)" parent="tx_group"
-          style="shape=rectangle;whiteSpace=wrap;align=left;spacingLeft=8;fillColor=#FEF9E7;" vertex="1">
-          <mxGeometry x="0" y="30" width="280" height="230" as="geometry"/>
-        </mxCell>
-
-
-        <!-- DISPUTE -->
-        <mxCell id="dispute_group" value="" style="group" vertex="1" parent="1">
-          <mxGeometry x="1220" y="430" width="280" height="260" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="dispute_header" value="Dispute" parent="dispute_group"
-          style="shape=rectangle;fillColor=#F5B7B1;align=center;fontStyle=1;" vertex="1">
-          <mxGeometry x="0" y="0" width="280" height="30" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="dispute_fields" value="dispute_id (UUID PK)
-parcel_id (UUID)
-reported_by (UUID)
-dispute_type (ENUM)
-description (TEXT)
-status (ENUM)
-created_at (TIMESTAMP)
-resolved_at (TIMESTAMP)" parent="dispute_group"
-          style="shape=rectangle;whiteSpace=wrap;align=left;spacingLeft=8;fillColor=#FDEDEC;" vertex="1">
-          <mxGeometry x="0" y="30" width="280" height="230" as="geometry"/>
-        </mxCell>
-
-
-        <!-- BLOCKCHAIN RECORD -->
-        <mxCell id="block_group" value="" style="group" vertex="1" parent="1">
-          <mxGeometry x="950" y="760" width="260" height="240" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="block_header" value="Blockchain_Record" parent="block_group"
-          style="shape=rectangle;fillColor=#D5F5E3;align=center;fontStyle=1;" vertex="1">
-          <mxGeometry x="0" y="0" width="260" height="30" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="block_fields" value="record_id (UUID PK)
-block_hash (TEXT)
-transaction_hash (TEXT)
-block_number (BIGINT)
-timestamp (TIMESTAMP)
-data_payload (JSONB)
-gas_used (BIGINT)" parent="block_group"
-          style="shape=rectangle;whiteSpace=wrap;align=left;spacingLeft=8;fillColor=#E8F8F5;" vertex="1">
-          <mxGeometry x="0" y="30" width="260" height="210" as="geometry"/>
-        </mxCell>
-
 
         <!-- RELATIONSHIPS -->
-        <mxCell edge="1" source="user_group" target="own_group" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell edge="1" source="parcel_group" target="own_group" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- User 1:N LandParcel (Owns) -->
+        <mxCell id="Rel1" value="Owns" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=ERoneToMany;endFill=0;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" edge="1" parent="1" source="User" target="LandParcel">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
 
-        <mxCell edge="1" source="parcel_group" target="doc_group" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <!-- LandParcel 1:1 TitleCertificate (Has) -->
+        <mxCell id="Rel2" value="Has" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=ERone;endFill=0;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" edge="1" parent="1" source="LandParcel" target="TitleCert">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
 
-        <mxCell edge="1" source="parcel_group" target="val_group" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell edge="1" source="user_group" target="val_group" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <!-- LandParcel 1:N Transaction (Involves) -->
+        <mxCell id="Rel3" value="Involves" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=ERoneToMany;endFill=0;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" edge="1" parent="1" source="LandParcel" target="Transaction">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
 
-        <mxCell edge="1" source="parcel_group" target="tx_group" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell edge="1" source="user_group" target="tx_group" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <!-- LandParcel 1:N Document (Has) -->
+        <mxCell id="Rel4" value="Has" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;endArrow=ERoneToMany;endFill=0;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" edge="1" parent="1" source="LandParcel" target="Document">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="340" y="212"/>
+              <mxPoint x="340" y="398"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
 
-        <mxCell edge="1" source="parcel_group" target="dispute_group" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell edge="1" source="user_group" target="dispute_group" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <!-- LandParcel 1:N Dispute (Has) -->
+        <mxCell id="Rel5" value="Has" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;endArrow=ERoneToMany;endFill=0;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" edge="1" parent="1" source="LandParcel" target="Dispute">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="212"/>
+              <mxPoint x="660" y="398"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
 
-        <mxCell edge="1" source="tx_group" target="block_group" style="endArrow=block;strokeColor=#333;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <!-- User 1:N Transaction (Buyer/Seller) -->
+        <mxCell id="Rel6" value="Initiates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=ERoneToMany;endFill=0;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" edge="1" parent="1" source="User" target="Transaction">
+          <mxGeometry relative="1" as="geometry">
+             <Array as="points">
+              <mxPoint x="170" y="300"/>
+              <mxPoint x="380" y="300"/>
+              <mxPoint x="380" y="448"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
 
       </root>
     </mxGraphModel>

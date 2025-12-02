@@ -1,78 +1,151 @@
-<mxfile host="Electron" modified="2025-11-30T02:30:00.000Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36" etag="q_H7X12xGjYl5r4f_1wA" version="22.1.21" type="embed">
+<mxfile host="Electron" modified="2025-11-30T02:45:00.000Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36" etag="q_H7X12xGjYl5r4f_1wA" version="22.1.21" type="embed">
   <diagram name="SmartLand_ERD" id="SmartLand_ERD">
-    <mxGraphModel dx="1100" dy="850" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+    <mxGraphModel dx="1400" dy="950" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="950" math="0" shadow="0">
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
 
+        <!-- GROUP: Identity & Access -->
+        <mxCell id="Group_Identity" value="Identity &amp; Access Layer" style="group" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="40" y="40" width="240" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="Bg_Identity" value="" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#b0b0b0;" vertex="1" parent="Group_Identity">
+          <mxGeometry width="240" height="420" as="geometry"/>
+        </mxCell>
+
         <!-- ENTITY: User -->
-        <mxCell id="User" value="User" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="80" y="80" width="180" height="150" as="geometry"/>
+        <mxCell id="User" value="User (Actors)" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="Group_Identity">
+          <mxGeometry x="20" y="20" width="200" height="200" as="geometry"/>
         </mxCell>
-        <mxCell id="UserPK" value="PK  UserID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="User">
-          <mxGeometry y="26" width="180" height="26" as="geometry"/>
+        <mxCell id="UserPK" value="PK  UserID (UUID)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="User">
+          <mxGeometry y="26" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="UserDID" value="    DID (Decentralized ID)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="User">
-          <mxGeometry y="52" width="180" height="26" as="geometry"/>
+        <mxCell id="UserDID" value="    DID (VARCHAR 255)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="User">
+          <mxGeometry y="52" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="UserRole" value="    Role (Owner/Buyer/Admin)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="User">
-          <mxGeometry y="78" width="180" height="26" as="geometry"/>
+        <mxCell id="UserRole" value="    Role (ENUM)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="User">
+          <mxGeometry y="78" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="UserWallet" value="    WalletAddress" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="User">
-          <mxGeometry y="104" width="180" height="26" as="geometry"/>
+        <mxCell id="UserWallet" value="    WalletAddress (HEX)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="User">
+          <mxGeometry y="104" width="200" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="UserName" value="    FullName (Encrypted)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="User">
-          <mxGeometry y="130" width="180" height="26" as="geometry"/>
+          <mxGeometry y="130" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="UserEmail" value="    Email (VARCHAR)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="User">
+          <mxGeometry y="156" width="200" height="26" as="geometry"/>
+        </mxCell>
+         <mxCell id="UserDate" value="    RegisteredAt (DATETIME)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="User">
+          <mxGeometry y="182" width="200" height="26" as="geometry"/>
+        </mxCell>
+
+        <!-- ENTITY: Notification -->
+        <mxCell id="Notification" value="Notification (Alerts)" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="Group_Identity">
+          <mxGeometry x="20" y="250" width="200" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="NotifPK" value="PK  AlertID (UUID)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="Notification">
+          <mxGeometry y="26" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="NotifUserFK" value="FK  UserID (UUID)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Notification">
+          <mxGeometry y="52" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="NotifMsg" value="    Message (TEXT)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Notification">
+          <mxGeometry y="78" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="NotifType" value="    Type (SMS/Email/App)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Notification">
+          <mxGeometry y="104" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="NotifDate" value="    SentAt (TIMESTAMP)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Notification">
+          <mxGeometry y="130" width="200" height="26" as="geometry"/>
+        </mxCell>
+
+        <!-- GROUP: Core Land Data -->
+        <mxCell id="Group_Land" value="Core Land Data Layer" style="group" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="350" y="40" width="240" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="Bg_Land" value="" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#b0b0b0;" vertex="1" parent="Group_Land">
+          <mxGeometry width="240" height="420" as="geometry"/>
         </mxCell>
 
         <!-- ENTITY: LandParcel -->
-        <mxCell id="LandParcel" value="LandParcel" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="400" y="80" width="200" height="176" as="geometry"/>
+        <mxCell id="LandParcel" value="LandParcel (Asset)" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="Group_Land">
+          <mxGeometry x="20" y="20" width="200" height="200" as="geometry"/>
         </mxCell>
-        <mxCell id="LandPK" value="PK  ParcelID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="LandParcel">
+        <mxCell id="LandPK" value="PK  ParcelID (UUID)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="LandParcel">
           <mxGeometry y="26" width="200" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="LandOwnerFK" value="FK  CurrentOwnerID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="LandParcel">
           <mxGeometry y="52" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="LandHash" value="    BlockchainHash (Unique)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="LandParcel">
+        <mxCell id="LandHash" value="    ChainHash (SHA-256)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="LandParcel">
           <mxGeometry y="78" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="LandCoords" value="    GeoJSON_Coordinates" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="LandParcel">
+        <mxCell id="LandCoords" value="    Coordinates (GeoJSON)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="LandParcel">
           <mxGeometry y="104" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="LandArea" value="    AreaSize" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="LandParcel">
+        <mxCell id="LandArea" value="    AreaSize (FLOAT)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="LandParcel">
           <mxGeometry y="130" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="LandStatus" value="    Status (Registered/Dispute)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="LandParcel">
+        <mxCell id="LandZone" value="    ZoningType (Res/Comm)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="LandParcel">
           <mxGeometry y="156" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="LandStatus" value="    Status (Active/Dispute)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="LandParcel">
+          <mxGeometry y="182" width="200" height="26" as="geometry"/>
+        </mxCell>
+
+        <!-- ENTITY: Document -->
+        <mxCell id="Document" value="Document (Off-chain)" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="Group_Land">
+          <mxGeometry x="20" y="250" width="200" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="DocPK" value="PK  DocumentID (UUID)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="Document">
+          <mxGeometry y="26" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="DocParcelFK" value="FK  ParcelID (UUID)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Document">
+          <mxGeometry y="52" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="DocType" value="    DocType (Survey/Deed)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Document">
+          <mxGeometry y="78" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="DocHash" value="    IPFSHash (VARCHAR)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Document">
+          <mxGeometry y="104" width="200" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="DocValidBy" value="FK  ValidatedBy (Officer)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Document">
+          <mxGeometry y="130" width="200" height="26" as="geometry"/>
+        </mxCell>
+
+        <!-- GROUP: Blockchain & Trans -->
+        <mxCell id="Group_Chain" value="Blockchain &amp; Transaction Layer" style="group" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="660" y="40" width="260" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="Bg_Chain" value="" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#b0b0b0;" vertex="1" parent="Group_Chain">
+          <mxGeometry width="260" height="500" as="geometry"/>
         </mxCell>
 
         <!-- ENTITY: TitleCertificate -->
-        <mxCell id="TitleCert" value="TitleCertificate" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
-          <mxGeometry x="720" y="80" width="200" height="150" as="geometry"/>
+        <mxCell id="TitleCert" value="TitleCertificate (NFT)" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="Group_Chain">
+          <mxGeometry x="30" y="20" width="200" height="150" as="geometry"/>
         </mxCell>
-        <mxCell id="CertPK" value="PK  CertificateID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="TitleCert">
+        <mxCell id="CertPK" value="PK  CertificateID (UUID)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="TitleCert">
           <mxGeometry y="26" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="CertParcelFK" value="FK  ParcelID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="TitleCert">
+        <mxCell id="CertParcelFK" value="FK  ParcelID (UUID)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="TitleCert">
           <mxGeometry y="52" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="CertToken" value="    TokenID (NFT)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="TitleCert">
+        <mxCell id="CertToken" value="    TokenID (ERC721 ID)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="TitleCert">
           <mxGeometry y="78" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="CertIssue" value="    IssueDate" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="TitleCert">
+        <mxCell id="CertIssue" value="    IssueDate (DATETIME)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="TitleCert">
           <mxGeometry y="104" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="CertTx" value="    IssueTxHash" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="TitleCert">
+        <mxCell id="CertTx" value="    IssueTxHash (HEX)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="TitleCert">
           <mxGeometry y="130" width="200" height="26" as="geometry"/>
         </mxCell>
 
         <!-- ENTITY: Transaction -->
-        <mxCell id="Transaction" value="Transaction" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
-          <mxGeometry x="400" y="360" width="200" height="176" as="geometry"/>
+        <mxCell id="Transaction" value="Transaction (Ledger)" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="Group_Chain">
+          <mxGeometry x="30" y="200" width="200" height="176" as="geometry"/>
         </mxCell>
-        <mxCell id="TxPK" value="PK  TransactionID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="Transaction">
+        <mxCell id="TxPK" value="PK  TransactionID (UUID)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="Transaction">
           <mxGeometry y="26" width="200" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="TxParcelFK" value="FK  ParcelID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Transaction">
@@ -84,38 +157,33 @@
         <mxCell id="TxBuyerFK" value="FK  BuyerID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Transaction">
           <mxGeometry y="104" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="TxType" value="    Type (Sale/Transfer/Reg)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Transaction">
+        <mxCell id="TxAmount" value="    Amount (DECIMAL)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Transaction">
           <mxGeometry y="130" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="TxStatus" value="    Status (Pending/Success)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Transaction">
+        <mxCell id="TxSC" value="    SC_Address (HEX)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Transaction">
           <mxGeometry y="156" width="200" height="26" as="geometry"/>
         </mxCell>
 
-        <!-- ENTITY: Document -->
-        <mxCell id="Document" value="Document" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
-          <mxGeometry x="80" y="360" width="200" height="150" as="geometry"/>
+        <!-- ENTITY: AuditLog -->
+        <mxCell id="AuditLog" value="AuditLog (System)" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;" vertex="1" parent="Group_Chain">
+          <mxGeometry x="30" y="400" width="200" height="100" as="geometry"/>
         </mxCell>
-        <mxCell id="DocPK" value="PK  DocumentID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="Document">
+        <mxCell id="AuditPK" value="PK  LogID (UUID)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="AuditLog">
           <mxGeometry y="26" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="DocParcelFK" value="FK  ParcelID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Document">
+        <mxCell id="AuditAction" value="    ActionType (LOGIN/EDIT)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="AuditLog">
           <mxGeometry y="52" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="DocType" value="    DocType (Survey/Deed)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Document">
+        <mxCell id="AuditTime" value="    Timestamp (DATETIME)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="AuditLog">
           <mxGeometry y="78" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="DocHash" value="    IPFSHash (Off-chain)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Document">
-          <mxGeometry y="104" width="200" height="26" as="geometry"/>
-        </mxCell>
-        <mxCell id="DocValidBy" value="FK  ValidatedBy (Officer)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Document">
-          <mxGeometry y="130" width="200" height="26" as="geometry"/>
-        </mxCell>
 
-        <!-- ENTITY: Dispute -->
-        <mxCell id="Dispute" value="Dispute" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="720" y="360" width="200" height="150" as="geometry"/>
+
+        <!-- ENTITY: Dispute (Placed separate for clarity) -->
+        <mxCell id="Dispute" value="Dispute (Conflict)" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="370" y="500" width="200" height="150" as="geometry"/>
         </mxCell>
-        <mxCell id="DisputePK" value="PK  DisputeID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="Dispute">
+        <mxCell id="DisputePK" value="PK  DisputeID (UUID)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;" vertex="1" parent="Dispute">
           <mxGeometry y="26" width="200" height="26" as="geometry"/>
         </mxCell>
         <mxCell id="DisputeParcelFK" value="FK  ParcelID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Dispute">
@@ -124,57 +192,61 @@
         <mxCell id="DisputeInitFK" value="FK  InitiatorID" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=4;" vertex="1" parent="Dispute">
           <mxGeometry y="78" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="DisputeReason" value="    Reason" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Dispute">
+        <mxCell id="DisputeReason" value="    Reason (TEXT)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Dispute">
           <mxGeometry y="104" width="200" height="26" as="geometry"/>
         </mxCell>
-        <mxCell id="DisputeStatus" value="    Status (Active/Resolved)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Dispute">
+        <mxCell id="DisputeStatus" value="    Status (Open/Resolved)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Dispute">
           <mxGeometry y="130" width="200" height="26" as="geometry"/>
         </mxCell>
 
+
         <!-- RELATIONSHIPS -->
         
-        <!-- User 1:N LandParcel (Owns) -->
+        <!-- User 1:N LandParcel -->
         <mxCell id="Rel1" value="Owns" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=ERoneToMany;endFill=0;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" edge="1" parent="1" source="User" target="LandParcel">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <!-- LandParcel 1:1 TitleCertificate (Has) -->
-        <mxCell id="Rel2" value="Has" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=ERone;endFill=0;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" edge="1" parent="1" source="LandParcel" target="TitleCert">
+        <!-- User 1:N Notification -->
+        <mxCell id="Rel7" value="Receives" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=ERoneToMany;endFill=0;" edge="1" parent="1" source="User" target="Notification">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <!-- LandParcel 1:N Transaction (Involves) -->
-        <mxCell id="Rel3" value="Involves" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=ERoneToMany;endFill=0;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" edge="1" parent="1" source="LandParcel" target="Transaction">
+        <!-- LandParcel 1:1 TitleCertificate -->
+        <mxCell id="Rel2" value="Has" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=ERone;endFill=0;" edge="1" parent="1" source="LandParcel" target="TitleCert">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <!-- LandParcel 1:N Document (Has) -->
-        <mxCell id="Rel4" value="Has" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;endArrow=ERoneToMany;endFill=0;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" edge="1" parent="1" source="LandParcel" target="Document">
+        <!-- LandParcel 1:N Transaction -->
+        <mxCell id="Rel3" value="Involves" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=ERoneToMany;endFill=0;" edge="1" parent="1" source="LandParcel" target="Transaction">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="340" y="212"/>
-              <mxPoint x="340" y="398"/>
+                <mxPoint x="520" y="328"/>
             </Array>
           </mxGeometry>
         </mxCell>
 
-        <!-- LandParcel 1:N Dispute (Has) -->
-        <mxCell id="Rel5" value="Has" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;endArrow=ERoneToMany;endFill=0;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" edge="1" parent="1" source="LandParcel" target="Dispute">
+        <!-- LandParcel 1:N Document -->
+        <mxCell id="Rel4" value="Has" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=ERoneToMany;endFill=0;" edge="1" parent="1" source="LandParcel" target="Document">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="660" y="212"/>
-              <mxPoint x="660" y="398"/>
+              <mxPoint x="420" y="240"/>
+              <mxPoint x="160" y="240"/>
             </Array>
           </mxGeometry>
         </mxCell>
 
-        <!-- User 1:N Transaction (Buyer/Seller) -->
-        <mxCell id="Rel6" value="Initiates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=ERoneToMany;endFill=0;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" edge="1" parent="1" source="User" target="Transaction">
+        <!-- LandParcel 1:N Dispute -->
+        <mxCell id="Rel5" value="SubjectTo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=ERoneToMany;endFill=0;" edge="1" parent="1" source="LandParcel" target="Dispute">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- User 1:N Transaction -->
+        <mxCell id="Rel6" value="Initiates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=ERoneToMany;endFill=0;" edge="1" parent="1" source="User" target="Transaction">
           <mxGeometry relative="1" as="geometry">
              <Array as="points">
-              <mxPoint x="170" y="300"/>
-              <mxPoint x="380" y="300"/>
-              <mxPoint x="380" y="448"/>
+              <mxPoint x="280" y="90"/>
+              <mxPoint x="280" y="328"/>
             </Array>
           </mxGeometry>
         </mxCell>

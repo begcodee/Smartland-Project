@@ -1,76 +1,80 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<platformUseCases title="360Taste_MultiVendor_Platform_UC_Draft" date="2025-12-05">
-
-    <projectNiche>Multi-Vendor Food Ordering Platform for Ghanaian Students</projectNiche>
-    <coreConstraintSolved>Eliminate customer disappointment due to meals being finished by implementing real-time stock updates.</coreConstraintSolved>
-
-    <actor role="Customer">
-        
-        <useCase id="UC001_Availability">
-            <name>Check Real-Time Meal Status</name>
-            <description>User views the specific 'Available' or 'Finished' status of a meal before ordering, directly solving the primary pain point.</description>
-            <priority>CRITICAL</priority>
-            <systemNote>This is a core differentiating feature from standard ordering apps.</systemNote>
-        </useCase>
-
-        <useCase id="UC002_Order">
-            <name>Place Order and Select Logistics</name>
-            <description>User places an order and chooses between the standard **Delivery** or **Pickup** option.</description>
-            <priority>High</priority>
-        </useCase>
-
-        <useCase id="UC003_Payment">
-            <name>Pay with Local Methods</name>
-            <description>User completes payment, utilizing integrated local methods, specifically **Mobile Money**.</description>
-            <priority>High</priority>
-        </useCase>
-        
-    </actor>
+<System name="360 Taste Multi-Vendor Platform">
     
-    <actor role="Vendor">
+    <!-- Documentation: This XML defines the Use Case Diagram structure for 360 Taste -->
+    <!-- Scope: Multi-vendor food ordering with specific Admin controls and Real-time stock management -->
 
-        <useCase id="UC101_Menu">
-            <name>Manage Own Menu and Pricing</name>
-            <description>Vendor logs in to manage their specific list of food items, descriptions, and prices.</description>
-            <priority>High</priority>
-        </useCase>
+    <Actors>
+        <Actor id="A1" name="Customer" type="Primary">
+            <Description>The end-user looking to order food.</Description>
+        </Actor>
+        <Actor id="A2" name="Vendor" type="Secondary">
+            <Description>Independent food sellers managing their own stalls.</Description>
+        </Actor>
+        <Actor id="A3" name="Admin (Elikem)" type="Primary">
+            <Description>The platform owner with super-admin privileges.</Description>
+        </Actor>
+    </Actors>
 
-        <useCase id="UC102_StockUpdate">
-            <name>Quickly Toggle Stock Status</name>
-            <description>Vendor must have a fast, simple mechanism to toggle a meal's status between 'Available' and 'Finished' (feeds UC001).</description>
-            <priority>CRITICAL</priority>
-        </useCase>
+    <UseCases>
+        <!-- Customer Use Cases -->
+        <UseCase id="UC1" name="Check Real-Time Availability">
+            <ActorRef id="A1"/>
+            <Description>View 'Available' or 'Finished' status to avoid disappointment.</Description>
+        </UseCase>
+        <UseCase id="UC2" name="Place Order (Delivery/Pickup)">
+            <ActorRef id="A1"/>
+            <Description>Select food and choose fulfillment method.</Description>
+        </UseCase>
+        <UseCase id="UC3" name="Pay via Mobile Money">
+            <ActorRef id="A1"/>
+            <Description>Complete transaction using local payment integration.</Description>
+        </UseCase>
 
-        <useCase id="UC103_OrderReceive">
-            <name>Receive and Confirm New Orders</name>
-            <description>Vendor is alerted to and confirms new incoming orders placed by customers.</description>
-            <priority>High</priority>
-        </useCase>
+        <!-- Vendor Use Cases -->
+        <UseCase id="UC4" name="Manage Menu Items">
+            <ActorRef id="A2"/>
+            <Description>Add, edit, or delete items specific to their vendor profile.</Description>
+        </UseCase>
+        <UseCase id="UC5" name="Toggle Stock Status">
+            <ActorRef id="A2"/>
+            <Description>Instantly switch item status between Available/Finished.</Description>
+        </UseCase>
+        <UseCase id="UC6" name="Receive Orders">
+            <ActorRef id="A2"/>
+            <Description>View incoming orders from customers.</Description>
+        </UseCase>
 
-    </actor>
+        <!-- Admin Use Cases -->
+        <UseCase id="UC7" name="Approve New Vendors">
+            <ActorRef id="A3"/>
+            <Description>Review and activate new vendor registrations.</Description>
+        </UseCase>
+        <UseCase id="UC8" name="Manage All Menus">
+            <ActorRef id="A3"/>
+            <Description>Override or edit any menu on the platform.</Description>
+        </UseCase>
+        <UseCase id="UC9" name="Remove/Suspend Vendor">
+            <ActorRef id="A3"/>
+            <Description>Ban or pause a vendor's access.</Description>
+        </UseCase>
+    </UseCases>
 
-    <actor role="Admin">
+    <Relationships>
+        <!-- Associations between Actors and Use Cases -->
+        <Association from="A1" to="UC1"/>
+        <Association from="A1" to="UC2"/>
+        <Association from="A1" to="UC3"/>
         
-        <useCase id="UC201_VendorApproval">
-            <name>Approve New Vendor Registrations</name>
-            <description>Admin (Elikem) reviews registration details and grants full access to new vendors, exercising **full control**.</description>
-            <priority>CRITICAL (Key requirement from Elikem)</priority>
-        </useCase>
+        <Association from="A2" to="UC4"/>
+        <Association from="A2" to="UC5"/>
+        <Association from="A2" to="UC6"/>
+        
+        <Association from="A3" to="UC7"/>
+        <Association from="A3" to="UC8"/>
+        <Association from="A3" to="UC9"/>
+    </Relationships>
 
-        <useCase id="UC202_VendorControl">
-            <name>Remove or Suspend Existing Vendors</name>
-            <description>Admin can remove, suspend, or reactivate any registered vendor on the platform.</description>
-            <priority>High</priority>
-        </useCase>
-
-        <useCase id="UC203_GlobalMenu">
-            <name>Oversee All Vendor Menus</name>
-            <description>Admin has view and edit access to all menus across all vendors for quality assurance and standardization.</description>
-            <priority>High</priority>
-        </useCase>
-
-    </actor>
-
-</platformUseCases>
+</System>
 
 

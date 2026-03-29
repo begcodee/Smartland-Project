@@ -2,7 +2,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'landowner' | 'buyer' | 'authority' | 'arbitrator';
+  role: 'admin' | 'seller' | 'buyer' | 'arbitrator';
   verificationStatus: 'verified' | 'pending' | 'rejected';
   country: string;
   phoneNumber: string;
@@ -30,6 +30,42 @@ export interface User {
     netWorth: number;
     bankingHistory: number; // years
   };
+  /** Ghana Card / NIA payload — pending until admin approves */
+  idVerification?: { status: 'pending' | 'verified' | 'rejected'; [k: string]: unknown };
+  /** Blockchain token generated on successful Ghana Lands Commission approval — unique per user, for smart contracts */
+  blockchainToken?: string;
+  /** Admin: Lands Commission employee / staff ID — required for admin login */
+  staffId?: string;
+  /** Arbitrator: Registration number from accredited arbitration body — required for arbitrator login */
+  arbitratorRegNo?: string;
+}
+
+/** Pending new user registration awaiting Ghana Lands Commission approval */
+export interface PendingRegistration {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  role: User['role'];
+  organization?: string;
+  password: string;
+  ghanaCard: {
+    frontCardImage: string;
+    backCardImage: string;
+    faceImage: string;
+    cardNumber: string;
+    fullName: string;
+  };
+  landDocuments: Array<{ id: string; name: string; type: string; scannedImage: string; uploadedAt: string; size: number }>;
+  /** Admin: Lands Commission Staff ID — required for admin signup */
+  staffId?: string;
+  /** Arbitrator: Registration number from accredited body — required for arbitrator signup */
+  arbitratorRegNo?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  rejectionReason?: string;
 }
 
 export interface LandParcel {
@@ -54,7 +90,13 @@ export interface LandParcel {
     type: string;
     url: string;
     uploadedAt: string;
+    /** Lands Commission verification — documents only appear on app when verified */
+    verificationStatus?: 'pending' | 'verified' | 'rejected';
+    verifiedBy?: string;
+    verifiedAt?: string;
   }>;
+  /** Parcel hidden from public registry until Lands Commission verifies all documents */
+  documentsVerificationStatus?: 'pending' | 'verified' | 'rejected';
   images?: Array<{
     id: string;
     url: string;
@@ -79,6 +121,11 @@ export interface LandParcel {
   registrationDate?: string;
   lastTransfer?: string;
   blockchainHash?: string;
+  /** Latest completed sale — Paystack reference (fiat) */
+  paystackReference?: string;
+  /** Optional explorer tx after registrar anchored on-chain */
+  chainAnchorTxHash?: string;
+  chainNetwork?: string;
 }
 
 export interface Dispute {
@@ -88,10 +135,10 @@ export interface Dispute {
   defendant: string;
   description: string;
   evidence: string[];
-  status: 'filed' | 'under_review' | 'community_voting' | 'resolved';
+  status: 'filed' | 'pending' | 'under_review' | 'community_voting' | 'resolved';
   filedDate: string;
   votes?: {
-    for: number;
+    support: number;
     against: number;
     abstain: number;
   };
@@ -115,7 +162,7 @@ export const mockUsers: User[] = [
     id: 'U001',
     name: 'John Doe',
     email: 'john.doe@gmail.com',
-    role: 'landowner',
+    role: 'seller',
     verificationStatus: 'verified',
     country: 'GH',
     phoneNumber: '+233244123456',
@@ -179,11 +226,12 @@ export const mockUsers: User[] = [
     id: 'U003',
     name: 'Ghana Land Commission',
     email: 'admin@ghanalandcommission.gov.gh',
-    role: 'authority',
+    role: 'admin',
     verificationStatus: 'verified',
     country: 'GH',
     phoneNumber: '+233302123456',
     organization: 'Ghana Land Commission',
+    staffId: 'GLC-EMP-2024-001',
     reputation: {
       score: 98,
       totalTransactions: 250,
@@ -201,6 +249,7 @@ export const mockUsers: User[] = [
     country: 'GH',
     phoneNumber: '+233244567890',
     organization: 'Ghana Arbitration Centre',
+    arbitratorRegNo: 'ARB-GH-2023-045',
     reputation: {
       score: 94,
       totalTransactions: 67,
@@ -213,11 +262,12 @@ export const mockUsers: User[] = [
     id: 'U005',
     name: 'Kofi Mensah',
     email: 'kofi.mensah@ama.gov.gh',
-    role: 'authority',
+    role: 'admin',
     verificationStatus: 'verified',
     country: 'GH',
     phoneNumber: '+233302789012',
     organization: 'Accra Metropolitan Assembly',
+    staffId: 'AMA-EMP-2024-012',
     reputation: {
       score: 91,
       totalTransactions: 134,
@@ -260,21 +310,10 @@ export const mockLandParcels: LandParcel[] = [
       }
     ],
     documents: [
-      {
-        id: 'DOC001',
-        name: 'Land Title Certificate',
-        type: 'PDF',
-        url: '/documents/land-title-001.pdf',
-        uploadedAt: '2024-01-15T10:00:00Z'
-      },
-      {
-        id: 'DOC002',
-        name: 'Survey Plan',
-        type: 'PDF',
-        url: '/documents/survey-plan-001.pdf',
-        uploadedAt: '2024-01-15T10:00:00Z'
-      }
+      { id: 'DOC001', name: 'Land Title Certificate', type: 'PDF', url: '/documents/land-title-001.pdf', uploadedAt: '2024-01-15T10:00:00Z', verificationStatus: 'verified' as const, verifiedBy: 'Ghana Lands Commission', verifiedAt: '2024-01-16T09:00:00Z' },
+      { id: 'DOC002', name: 'Survey Plan', type: 'PDF', url: '/documents/survey-plan-001.pdf', uploadedAt: '2024-01-15T10:00:00Z', verificationStatus: 'verified' as const, verifiedBy: 'Ghana Lands Commission', verifiedAt: '2024-01-16T09:00:00Z' }
     ],
+    documentsVerificationStatus: 'verified',
     createdAt: '2024-01-15T10:00:00Z',
     updatedAt: '2024-01-15T10:00:00Z',
     comments: [
@@ -602,7 +641,7 @@ export const mockDisputes: Dispute[] = [
     status: 'community_voting',
     filedDate: '2024-09-15T14:20:00Z',
     votes: {
-      for: 23,
+      support: 23,
       against: 18,
       abstain: 5
     }
@@ -722,6 +761,172 @@ export const blockchainService = {
       isOwner: parcel?.ownerId === userId,
       verificationHash: `0x${Math.random().toString(16).substr(2, 64)}`
     };
+  },
+
+  createDispute: async (disputeData: {
+    landParcelId: string;
+    plaintiff: string;
+    defendant: string;
+    description: string;
+    evidence: string[];
+  }) => {
+    const id = `D${String(mockDisputes.length + 1).padStart(3, '0')}`;
+    const newDispute: Dispute = {
+      id,
+      ...disputeData,
+      status: 'pending',
+      filedDate: new Date().toISOString(),
+      votes: { support: 0, against: 0, abstain: 0 }
+    };
+    mockDisputes.push(newDispute);
+    return {
+      success: true,
+      gasUsed: Math.floor(Math.random() * 50000) + 21000
+    };
+  },
+
+  voteOnDispute: async (disputeId: string, vote: 'support' | 'against' | 'abstain') => {
+    const dispute = mockDisputes.find(d => d.id === disputeId);
+    if (!dispute || !dispute.votes) {
+      return { success: false, error: 'Dispute not found' };
+    }
+    dispute.votes[vote] += 1;
+    return {
+      success: true,
+      gasUsed: Math.floor(Math.random() * 10000) + 5000
+    };
+  },
+
+  /** Lands Commission verifies land documents before parcel appears on public registry */
+  verifyDocuments: async (
+    parcelId: string,
+    verifiedBy: string,
+    docUpdates: { docId: string; action: 'verify' | 'reject' }[]
+  ) => {
+    const parcel = mockLandParcels.find(p => p.id === parcelId);
+    if (!parcel) return { success: false, error: 'Parcel not found' };
+    const now = new Date().toISOString();
+    for (const { docId, action } of docUpdates) {
+      const doc = parcel.documents?.find(d => d.id === docId);
+      if (doc) {
+        doc.verificationStatus = action;
+        if (action === 'verify') {
+          doc.verifiedBy = verifiedBy;
+          doc.verifiedAt = now;
+        }
+      }
+    }
+    const allVerified = parcel.documents?.every(d => d.verificationStatus === 'verified');
+    const anyRejected = parcel.documents?.some(d => d.verificationStatus === 'rejected');
+    parcel.documentsVerificationStatus = anyRejected ? 'rejected' : allVerified ? 'verified' : 'pending';
+    parcel.updatedAt = now;
+    return { success: true };
+  }
+};
+
+// Pending new user registrations for Ghana Lands Commission review
+export const pendingRegistrations: PendingRegistration[] = [];
+
+/** Generate unique blockchain token for user (smart contract identity) */
+export const generateBlockchainToken = (): string => {
+  return `0x${Array.from(crypto.getRandomValues(new Uint8Array(32)))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')}`;
+};
+
+/** Submit new user registration for Ghana Lands Commission review */
+export const registrationService = {
+  submit: async (data: Omit<PendingRegistration, 'id' | 'status' | 'submittedAt'>) => {
+    const pending: PendingRegistration = {
+      ...data,
+      id: `REG${Date.now()}`,
+      status: 'pending',
+      submittedAt: new Date().toISOString()
+    };
+    pendingRegistrations.push(pending);
+    return { success: true, id: pending.id };
+  },
+
+  /** Simulate Ghana Lands Commission review — in production this would be admin action */
+  review: async (
+    registrationId: string,
+    action: 'approve' | 'reject',
+    reviewedBy: string,
+    rejectionReason?: string
+  ): Promise<{ success: boolean; user?: User; error?: string }> => {
+    const reg = pendingRegistrations.find((r) => r.id === registrationId);
+    if (!reg) return { success: false, error: 'Registration not found' };
+    if (reg.status !== 'pending') return { success: false, error: 'Already reviewed' };
+
+    reg.status = action;
+    reg.reviewedAt = new Date().toISOString();
+    reg.reviewedBy = reviewedBy;
+    if (action === 'reject') reg.rejectionReason = rejectionReason || 'Documents do not meet Ghana Lands Commission standards.';
+
+    if (action === 'approve') {
+      const token = generateBlockchainToken();
+      const newUser: User = {
+        id: Date.now().toString(),
+        name: reg.name,
+        email: reg.email,
+        role: reg.role,
+        verificationStatus: 'verified',
+        country: 'GH',
+        phoneNumber: reg.phoneNumber,
+        organization: reg.organization,
+        staffId: reg.staffId,
+        arbitratorRegNo: reg.arbitratorRegNo,
+        idVerification: { ...reg.ghanaCard, status: 'verified' as const },
+        blockchainToken: token,
+        reputation: { score: 0, totalTransactions: 0, successfulTransactions: 0, disputesWon: 0, communityVotes: 0 },
+        creditScore: { score: 650, rating: 'Fair', paymentHistory: 70, creditUtilization: 45, lengthOfHistory: 60, newCredit: 55, creditMix: 65 },
+        financialProfile: { monthlyIncome: 3500, assets: 50000, liabilities: 15000, netWorth: 35000, bankingHistory: 3 }
+      };
+      mockUsers.push(newUser);
+      return { success: true, user: newUser };
+    }
+    return { success: false };
+  },
+
+  /** Simulate async Commission review (for new user flow — auto-review with pass/fail) */
+  simulateReview: async (
+    registrationId: string
+  ): Promise<{ approved: boolean; user?: User; reason?: string }> => {
+    await new Promise((r) => setTimeout(r, 2500));
+    const reg = pendingRegistrations.find((r) => r.id === registrationId);
+    if (!reg) return { approved: false, reason: 'Registration not found' };
+
+    const hasValidGhanaCard = !!(
+      reg.ghanaCard?.frontCardImage &&
+      reg.ghanaCard?.backCardImage &&
+      reg.ghanaCard?.faceImage &&
+      reg.ghanaCard?.cardNumber &&
+      reg.ghanaCard?.fullName
+    );
+    const hasLandDocs = reg.role === 'seller' ? reg.landDocuments.length >= 2 : true;
+    const hasStaffCredential = reg.role === 'admin' ? !!reg.staffId?.trim() : reg.role === 'arbitrator' ? !!reg.arbitratorRegNo?.trim() : true;
+
+    if (!hasStaffCredential) {
+      reg.status = 'rejected';
+      reg.rejectionReason = reg.role === 'admin' ? 'Staff ID is required for Ghana Lands Commission admin registration.' : 'Arbitrator registration number is required.';
+      return { approved: false, reason: reg.rejectionReason };
+    }
+    if (!hasValidGhanaCard) {
+      reg.status = 'rejected';
+      reg.rejectionReason = 'Ghana Card verification failed. Ensure front, back, and face images are clear and card details are entered.';
+      return { approved: false, reason: reg.rejectionReason };
+    }
+    if (!hasLandDocs) {
+      reg.status = 'rejected';
+      reg.rejectionReason = 'Land documents required. Sellers must upload Land Title Certificate and Survey Plan.';
+      return { approved: false, reason: reg.rejectionReason };
+    }
+
+    return registrationService.review(registrationId, 'approve', 'Ghana Lands Commission').then((r) =>
+      r.success && r.user
+        ? { approved: true, user: r.user }
+        : { approved: false, reason: 'Verification failed. Please try again.' }
+    );
   }
 };
 
@@ -834,12 +1039,7 @@ export const countries = [
   { code: 'MV', name: 'Maldives', flag: '🇲🇻', dialCode: '+960' }
 ];
 
-// Currency formatter for Ghana Cedis
+// Currency formatter for Ghana Cedis (₵)
 export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('en-GH', {
-    style: 'currency',
-    currency: 'GHS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return `₵${amount.toLocaleString('en-GH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 };

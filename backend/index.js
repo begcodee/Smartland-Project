@@ -54,7 +54,7 @@ app.use(
 );
 app.use(express.json({ limit: "10mb" }));
 
-// API compatible with frontend (shadcn-ui)
+// API compatible with frontend (`frontend/` Vite app)
 app.use("/api/auth", authRoutes);
 app.use("/api/parcels", parcelRoutes);
 app.use("/api/payments", paymentRoutes);

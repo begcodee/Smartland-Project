@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { formatCurrency } from '@/lib/mockData';
 import { 
   MapPin, Info, DollarSign, Ruler, Calendar, User, 
   MessageSquare, Send, Heart, Share2, Eye
@@ -243,7 +244,7 @@ export const GhanaMapViewer = () => {
                         <Badge variant={getStatusBadgeVariant(parcel.status)} className="text-xs">
                           {parcel.status}
                         </Badge>
-                        <span className="text-xs font-medium">${parcel.price.toLocaleString()}</span>
+                        <span className="text-xs font-medium">{formatCurrency(parcel.price)}</span>
                       </div>
                       <p className="text-xs text-muted-foreground">{parcel.area} m² • {parcel.region}</p>
                     </div>
@@ -311,7 +312,7 @@ export const GhanaMapViewer = () => {
                         <DollarSign className="w-4 h-4 text-green-600" />
                         <div>
                           <p className="text-sm font-medium">Price</p>
-                          <p className="text-lg font-bold text-green-600">${selectedParcel.price.toLocaleString()}</p>
+                          <p className="text-lg font-bold text-green-600">{formatCurrency(selectedParcel.price)}</p>
                         </div>
                       </div>
 
@@ -490,7 +491,7 @@ export const GhanaMapViewer = () => {
               <div>
                 <p className="text-sm font-medium text-purple-700">Total Value</p>
                 <p className="text-2xl font-bold text-purple-900">
-                  ${(ghanaLandParcels.reduce((sum, p) => sum + p.price, 0) / 1000).toFixed(0)}K
+                  {formatCurrency(ghanaLandParcels.reduce((sum, p) => sum + p.price, 0))}
                 </p>
               </div>
               <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">

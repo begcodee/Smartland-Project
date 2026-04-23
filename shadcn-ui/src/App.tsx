@@ -11,6 +11,7 @@ import BuyerDashboard from './pages/BuyerDashboard';
 import ArbitratorDashboard from './pages/ArbitratorDashboard';
 import NotFound from './pages/NotFound';
 import PaymentCallback from './pages/PaymentCallback';
+import NiaDashboard from './pages/NiaDashboard';
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,14 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={['arbitrator']}>
                   <ArbitratorDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/nia"
+              element={
+                <ProtectedRoute allowedRoles={['nia']}>
+                  <NiaDashboard />
                 </ProtectedRoute>
               }
             />

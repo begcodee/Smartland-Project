@@ -284,7 +284,7 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
           {cardName} Verification
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Front and back of your card plus a face match. Payment and access use Ghana Cedis and staff approval — you do not need cryptocurrency.
+          Front and back of your card plus a face match. Verification is reviewed by staff before access is granted.
         </CardDescription>
         <Progress value={progressValue} className="h-2 bg-muted" />
       </CardHeader>
@@ -589,7 +589,7 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
               <Clock className="h-4 w-4 text-muted-foreground" />
               <AlertDescription className="text-foreground">
                 After you submit, Ghana Lands Commission and (where applicable) NIA will review your details. Expect an email within{' '}
-                <strong>24 to 48 hours</strong> — not instant verification. Land payments use Paystack in Ghana Cedis (no crypto wallet).
+                <strong>24 to 48 hours</strong> — not instant verification.
               </AlertDescription>
             </Alert>
             <Button onClick={() => void submitVerification()} disabled={isProcessing} className="w-full">

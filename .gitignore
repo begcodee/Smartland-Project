@@ -23,6 +23,8 @@ ENV/
 .temp/
 *.tmp
 coverage/
+*.db
+**/prisma/dev.db
 CMakeFiles/
 CMakeCache.txt
 yarn-error.log

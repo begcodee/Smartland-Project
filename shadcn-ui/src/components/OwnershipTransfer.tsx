@@ -1,92 +1,122 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ArrowRightLeft, Shield, Clock, CheckCircle, XCircle, Plus } from 'lucide-react';
-import { mockLandParcels, mockTransfers, blockchainService } from '@/lib/mockData';
+import { mockLandParcels, mockTransfers } from '@/lib/mockData';
 import { Transfer } from '@/types';
+import { api } from '@/lib/api';
+import { mapApiParcelToLandParcel } from '@/lib/parcelMapper';
+import { useAuth, isUserRestricted } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+function mapApiTransfer(t: { id: string; landParcelId: string; fromUser?: { name?: string }; toUser?: { name?: string }; amount?: number; status?: string; initiatedDate?: string; completedDate?: string | null }) {
+  return {
+    id: t.id,
+    landParcelId: t.landParcelId,
+    from: (t.fromUser && typeof t.fromUser === 'object' && t.fromUser.name) ? t.fromUser.name : 'Unknown',
+    to: (t.toUser && typeof t.toUser === 'object' && t.toUser.name) ? t.toUser.name : 'Unknown',
+    amount: t.amount ?? 0,
+    status: (t.status === 'pending' ? 'escrowed' : t.status) as Transfer['status'],
+    initiatedDate: t.initiatedDate ? new Date(t.initiatedDate).toISOString().split('T')[0] : '',
+    completedDate: t.completedDate ? new Date(t.completedDate).toISOString().split('T')[0] : undefined
+  };
+}
+
 export default function OwnershipTransfer() {
-  const [transfers, setTransfers] = useState(mockTransfers);
+  const { user } = useAuth();
+  const restrictedUser = isUserRestricted(user);
+  const [transfers, setTransfers] = useState<Transfer[]>(mockTransfers);
+  const [parcels, setParcels] = useState(mockLandParcels);
+  const [users, setUsers] = useState<{ id: string; name: string; email: string }[]>([]);
   const [newTransfer, setNewTransfer] = useState({
     landParcelId: '',
-    from: '',
-    to: '',
+    toUserId: '',
     amount: ''
   });
   const [isCreating, setIsCreating] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let ok = true;
+    (async () => {
+      try {
+        const [trfRes, parcelRes, userRes] = await Promise.all([
+          api.getTransfers().catch(() => null),
+          api.getParcels().catch(() => null),
+          api.getUsers().catch(() => null)
+        ]);
+        if (!ok) return;
+        if (trfRes?.success && Array.isArray(trfRes.transfers)) {
+          setTransfers(trfRes.transfers.map((t: object) => mapApiTransfer(t as Parameters<typeof mapApiTransfer>[0])));
+        }
+        if (parcelRes?.success && Array.isArray(parcelRes.parcels)) {
+          setParcels(parcelRes.parcels.map((p: object) => mapApiParcelToLandParcel(p as Parameters<typeof mapApiParcelToLandParcel>[0])));
+        }
+        if (userRes?.success && Array.isArray(userRes.users)) {
+          setUsers(userRes.users);
+        }
+      } finally {
+        if (ok) setLoading(false);
+      }
+    })();
+    return () => { ok = false; };
+  }, []);
+
+  const myParcels = parcels.filter(p => p.ownerId === user?.id && (p.status === 'available' || p.status === 'pending'));
 
   const handleCreateTransfer = async () => {
-    if (!newTransfer.landParcelId || !newTransfer.from || !newTransfer.to || !newTransfer.amount) {
-      toast.error('Please fill in all required fields');
+    if (restrictedUser) {
+      toast.error('Your account is pending verification. Transfer actions are locked for now.');
+      return;
+    }
+    if (!newTransfer.landParcelId || !newTransfer.toUserId || !newTransfer.amount) {
+      toast.error('Please fill in all required fields (parcel, buyer, amount)');
       return;
     }
 
     setIsCreating(true);
     try {
-      const result = await blockchainService.transferOwnership(
-        newTransfer.landParcelId,
-        newTransfer.from,
-        newTransfer.to
-      );
-
-      if (result.success) {
-        const transfer: Transfer = {
-          id: `T${String(transfers.length + 1).padStart(3, '0')}`,
-          landParcelId: newTransfer.landParcelId,
-          from: newTransfer.from,
-          to: newTransfer.to,
-          amount: parseInt(newTransfer.amount),
-          status: 'escrowed',
-          initiatedDate: new Date().toISOString().split('T')[0],
-          escrowHash: result.hash
-        };
-
-        setTransfers([...transfers, transfer]);
-        setNewTransfer({ landParcelId: '', from: '', to: '', amount: '' });
-        toast.success(`Transfer initiated successfully! Gas used: ${result.gasUsed}`);
+      const result = await api.createTransfer({
+        landParcelId: newTransfer.landParcelId,
+        toUserId: newTransfer.toUserId,
+        amount: parseInt(newTransfer.amount)
+      });
+      if (result.success && result.transfer) {
+        setTransfers(prev => [...prev, mapApiTransfer(result.transfer)]);
+        setNewTransfer({ landParcelId: '', toUserId: '', amount: '' });
+        toast.success('Transfer initiated successfully');
       }
     } catch (error) {
-      toast.error('Failed to initiate transfer on blockchain');
+      toast.error(error instanceof Error ? error.message : 'Failed to initiate transfer');
     } finally {
       setIsCreating(false);
     }
   };
 
   const handleCompleteTransfer = async (transferId: string) => {
-    const transfer = transfers.find(t => t.id === transferId);
-    if (!transfer) return;
-
+    if (restrictedUser) {
+      toast.error('Your account is pending verification. Transfer actions are locked for now.');
+      return;
+    }
     try {
-      const result = await blockchainService.transferOwnership(
-        transfer.landParcelId,
-        transfer.from,
-        transfer.to
-      );
-
-      if (result.success) {
-        setTransfers(transfers.map(t => 
-          t.id === transferId 
-            ? { ...t, status: 'completed', completedDate: new Date().toISOString().split('T')[0] }
-            : t
-        ));
-        toast.success('Transfer completed successfully!');
+      const result = await api.completeTransfer(transferId);
+      if (result.success && result.transfer) {
+        setTransfers(prev => prev.map(t => t.id === transferId ? mapApiTransfer(result.transfer) : t));
+        toast.success('Transfer completed successfully');
       }
     } catch (error) {
-      toast.error('Failed to complete transfer');
+      toast.error(error instanceof Error ? error.message : 'Failed to complete transfer');
     }
   };
 
-  const handleCancelTransfer = (transferId: string) => {
-    setTransfers(transfers.map(t => 
-      t.id === transferId ? { ...t, status: 'cancelled' } : t
-    ));
-    toast.success('Transfer cancelled');
+  const handleCancelTransfer = (_transferId: string) => {
+    toast.info('Cancel not yet supported via API');
   };
 
   const getStatusIcon = (status: string) => {
@@ -111,6 +141,13 @@ export default function OwnershipTransfer() {
 
   return (
     <div className="space-y-6">
+      {restrictedUser && (
+        <Alert className="border-amber-300 bg-amber-50">
+          <AlertDescription className="text-amber-900">
+            You can review transfer history while pending verification, but initiating or completing transfers is disabled.
+          </AlertDescription>
+        </Alert>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div>
@@ -120,7 +157,7 @@ export default function OwnershipTransfer() {
         
         <Dialog>
           <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
+            <Button className="flex items-center gap-2" disabled={restrictedUser}>
               <Plus className="w-4 h-4" />
               Initiate Transfer
             </Button>
@@ -134,7 +171,7 @@ export default function OwnershipTransfer() {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="parcel">Land Parcel</Label>
+                <Label htmlFor="parcel">Land Parcel (your listed parcels)</Label>
                 <Select value={newTransfer.landParcelId} onValueChange={(value) => 
                   setNewTransfer({ ...newTransfer, landParcelId: value })
                 }>
@@ -142,7 +179,7 @@ export default function OwnershipTransfer() {
                     <SelectValue placeholder="Select a land parcel" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockLandParcels.filter(p => p.status === 'active').map((parcel) => (
+                    {myParcels.map((parcel) => (
                       <SelectItem key={parcel.id} value={parcel.id}>
                         {parcel.title} - {parcel.owner}
                       </SelectItem>
@@ -151,25 +188,24 @@ export default function OwnershipTransfer() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="from">Current Owner</Label>
-                <Input
-                  id="from"
-                  placeholder="Current owner name"
-                  value={newTransfer.from}
-                  onChange={(e) => setNewTransfer({ ...newTransfer, from: e.target.value })}
-                />
+                <Label htmlFor="to">Buyer (new owner)</Label>
+                <Select value={newTransfer.toUserId} onValueChange={(value) => 
+                  setNewTransfer({ ...newTransfer, toUserId: value })
+                }>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select buyer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.filter(u => u.id !== user?.id).map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} ({u.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="to">New Owner</Label>
-                <Input
-                  id="to"
-                  placeholder="New owner name"
-                  value={newTransfer.to}
-                  onChange={(e) => setNewTransfer({ ...newTransfer, to: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="amount">Transfer Amount (USD)</Label>
+                <Label htmlFor="amount">Transfer Amount (Ghana Cedis)</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -181,7 +217,7 @@ export default function OwnershipTransfer() {
             </div>
             <Button 
               onClick={handleCreateTransfer} 
-              disabled={isCreating}
+              disabled={isCreating || restrictedUser}
               className="w-full"
             >
               {isCreating ? 'Creating Smart Contract...' : 'Initiate Transfer'}
@@ -225,7 +261,7 @@ export default function OwnershipTransfer() {
       {/* Active Transfers */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {transfers.map((transfer) => {
-          const parcel = mockLandParcels.find(p => p.id === transfer.landParcelId);
+          const parcel = parcels.find(p => p.id === transfer.landParcelId);
           return (
             <Card key={transfer.id}>
               <CardHeader className="pb-3">
@@ -254,7 +290,7 @@ export default function OwnershipTransfer() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <p className="text-muted-foreground">Amount</p>
-                    <p className="font-medium">${transfer.amount.toLocaleString()}</p>
+                    <p className="font-medium">₵{transfer.amount.toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Initiated</p>
@@ -274,6 +310,7 @@ export default function OwnershipTransfer() {
                     <Button 
                       size="sm" 
                       onClick={() => handleCompleteTransfer(transfer.id)}
+                      disabled={restrictedUser}
                       className="flex-1"
                     >
                       Complete Transfer
@@ -282,6 +319,7 @@ export default function OwnershipTransfer() {
                       size="sm" 
                       variant="outline" 
                       onClick={() => handleCancelTransfer(transfer.id)}
+                      disabled={restrictedUser}
                       className="flex-1"
                     >
                       Cancel

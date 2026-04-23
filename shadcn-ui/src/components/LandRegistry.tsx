@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,8 @@ import { ImageUpload } from '@/components/ImageUpload';
 import { DocumentScanner, type ScannedDocument } from '@/components/DocumentScanner';
 import { toast } from 'sonner';
 import { isUserRestricted } from '@/contexts/AuthContext';
+import { ParcelChatDialog } from '@/components/ParcelChatDialog';
+import { formatAreaSummary, parseAreaToSqm, sqmToSqft } from '@/lib/measurements';
 
 interface LandImage {
   id: string;
@@ -38,12 +41,15 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedParcel, setSelectedParcel] = useState<LandParcel | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [paymentChannel, setPaymentChannel] = useState<'mobile_money' | 'bank'>('mobile_money');
   const [payStarting, setPayStarting] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'disputed'>('all');
   const [newParcel, setNewParcel] = useState({
     title: '',
@@ -68,9 +74,36 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
       (currentUser?.role === 'buyer' || currentUser?.role === 'admin') &&
       selectedParcel.status === 'available' &&
       currentUser?.id &&
-      selectedParcel.ownerId !== currentUser.id &&
-      selectedParcel.documentsVerificationStatus === 'verified'
+      selectedParcel.ownerId !== currentUser.id
   );
+
+  const parsedNewArea = useMemo(() => {
+    const p = parseAreaToSqm(newParcel.area);
+    return p.sqm ? formatAreaSummary(p.sqm) : null;
+  }, [newParcel.area]);
+
+  const canMessageSeller = Boolean(
+    selectedParcel &&
+      !restrictedUser &&
+      (currentUser?.role === 'buyer' || currentUser?.role === 'admin') &&
+      currentUser?.id &&
+      selectedParcel.ownerId !== currentUser.id &&
+      selectedParcel.status !== 'sold'
+  );
+
+  // Deep-link: /buyer?parcelId=...
+  useEffect(() => {
+    const pid = searchParams.get('parcelId');
+    if (!pid) return;
+    const p = parcels.find((x) => x.id === pid);
+    if (p) {
+      setSelectedParcel(p);
+      setDetailsOpen(true);
+      // remove param so refresh doesn't keep reopening
+      searchParams.delete('parcelId');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, parcels]);
 
   const handlePaystackPurchase = async () => {
     if (!selectedParcel) return;
@@ -78,7 +111,8 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
     try {
       const res = await api.initializeLandPayment({
         landParcelId: selectedParcel.id,
-        channel: paymentChannel
+        channel: paymentChannel,
+        amountGhs: selectedParcel.price || selectedParcel.value || 0
       });
       if (res.authorizationUrl) {
         window.location.href = res.authorizationUrl;
@@ -171,6 +205,13 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
       });
       return;
     }
+    if (!parsedNewArea?.sqm) {
+      toast.error('Invalid area format', {
+        description: 'Enter area in sqm (e.g. 500), sqft (e.g. 5382 sqft), acres (e.g. 0.12 acre), or dimensions (e.g. 100x70 ft).',
+        duration: 8000,
+      });
+      return;
+    }
     if (newParcel.documents.length < 1) {
       toast.error('At least one land document required', {
         description: 'Upload or scan at least a Land Title Certificate. Use the "Scan" button to simulate a document scan.',
@@ -193,7 +234,8 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
           longitude: coords.lng,
           region: newParcel.location.region
         },
-        area: parseInt(newParcel.area),
+        areaSqm: Math.round(parsedNewArea.sqm),
+        areaSqft: Math.round(parsedNewArea.sqft),
         price: parseInt(newParcel.price) || 0,
         type: newParcel.type,
         documents: newParcel.documents.map(d => ({
@@ -229,7 +271,7 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
             coordinates: { lat: coords.lat, lng: coords.lng },
             region: newParcel.location.region
           },
-          area: parseInt(newParcel.area) || 0,
+          area: Math.round(parsedNewArea.sqm) || 0,
           price: parseInt(newParcel.price) || 0,
           status: 'available',
           ownerId: currentUser?.id ?? '',
@@ -425,12 +467,18 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                     <Label htmlFor="area" className="text-foreground font-medium">Area (sq. meters) *</Label>
                     <Input
                       id="area"
-                      type="number"
-                      placeholder="500"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="e.g. 500, 5382 sqft, 0.12 acre, 100x70 ft"
                       value={newParcel.area}
                       onChange={(e) => setNewParcel({ ...newParcel, area: e.target.value })}
                       className="border-input focus:border-primary focus:ring-primary"
                     />
+                    {parsedNewArea?.sqm ? (
+                      <p className="text-xs text-muted-foreground">
+                        Stored as <span className="font-medium text-foreground">{Math.round(parsedNewArea.sqm).toLocaleString()} sqm</span> · {parsedNewArea.text}
+                      </p>
+                    ) : null}
                   </div>
                   
                   <div className="space-y-2 md:col-span-2">
@@ -670,13 +718,22 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                     Details locked until verification
                   </Button>
                 ) : (
-                  <Dialog>
+                  <Dialog
+                    open={detailsOpen && selectedParcel?.id === parcel.id}
+                    onOpenChange={(o) => {
+                      setDetailsOpen(o);
+                      if (!o) setSelectedParcel(null);
+                    }}
+                  >
                     <DialogTrigger asChild>
                       <Button 
                         variant="outline" 
                         size="sm" 
                         className="w-full border-input text-foreground hover:bg-secondary transition-all duration-300"
-                        onClick={() => setSelectedParcel(parcel)}
+                        onClick={() => {
+                          setSelectedParcel(parcel);
+                          setDetailsOpen(true);
+                        }}
                       >
                         <Eye className="w-4 h-4 mr-2" />
                         View Details
@@ -692,32 +749,9 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                           <p className="flex items-start gap-2">
                             <Zap className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                             <span>
-                              <span className="font-medium text-foreground">Settlement:</span> purchases use{' '}
-                              <strong>Paystack</strong> (Mobile Money / bank in GHS). No cryptocurrency wallet is required.
+                              <span className="font-medium text-foreground">Settlement:</span> pay in Ghana Cedis (GHS) via Mobile Money or bank.
                             </span>
                           </p>
-                          {selectedParcel?.paystackReference && (
-                            <p className="pl-6 font-mono text-xs break-all">
-                              Paystack ref: {selectedParcel.paystackReference}
-                            </p>
-                          )}
-                          {selectedParcel?.blockchainHash && (
-                            <p className="pl-6 font-mono text-xs break-all">
-                              On-chain sale id: {selectedParcel.blockchainHash}
-                            </p>
-                          )}
-                          {selectedParcel?.chainAnchorTxHash && (
-                            <p className="pl-6">
-                              <a
-                                href={`${(import.meta.env.VITE_CHAIN_EXPLORER_TX_BASE || 'https://amoy.polygonscan.com/tx/').replace(/\/$/, '')}/${selectedParcel.chainAnchorTxHash}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-primary underline text-xs font-mono break-all"
-                              >
-                                View anchor transaction{selectedParcel.chainNetwork ? ` (${selectedParcel.chainNetwork})` : ''}
-                              </a>
-                            </p>
-                          )}
                         </div>
                       </DialogDescription>
                     </DialogHeader>
@@ -824,13 +858,12 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                           <div className="rounded-lg border border-primary/25 bg-primary/5 p-4 space-y-3">
                             <Label className="text-foreground font-medium flex items-center gap-2">
                               <CreditCard className="h-4 w-4" />
-                              Purchase with Paystack
+                              Purchase
                             </Label>
                             <p className="text-xs text-muted-foreground">
-                              Pay in Ghana Cedis (GHS) via Mobile Money or bank on Paystack. You do not need crypto —
-                              after payment succeeds, the registry can anchor the sale on-chain automatically in the
-                              background (no wallet app required).
+                              Pay in Ghana Cedis (GHS) via Mobile Money or bank.
                             </p>
+                           
                             <RadioGroup
                               value={paymentChannel}
                               onValueChange={(v) => setPaymentChannel(v as 'mobile_money' | 'bank')}
@@ -857,7 +890,19 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                               disabled={payStarting}
                               onClick={() => void handlePaystackPurchase()}
                             >
-                              {payStarting ? 'Starting checkout…' : 'Proceed to Paystack'}
+                              {payStarting ? 'Starting checkout…' : 'Proceed to checkout'}
+                            </Button>
+                          </div>
+                        )}
+
+                        {canMessageSeller && (
+                          <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+                            <Label className="text-foreground font-medium">Contact seller</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Start a secure in-app conversation tied to this parcel.
+                            </p>
+                            <Button type="button" className="w-full" variant="secondary" onClick={() => setChatOpen(true)}>
+                              Message seller
                             </Button>
                           </div>
                         )}
@@ -886,6 +931,15 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
               : 'Try adjusting your search criteria or register a new land parcel.'}
           </p>
         </div>
+      )}
+
+      {selectedParcel && (
+        <ParcelChatDialog
+          open={chatOpen}
+          onOpenChange={setChatOpen}
+          landParcelId={selectedParcel.id}
+          parcelTitle={selectedParcel.title}
+        />
       )}
     </div>
   );

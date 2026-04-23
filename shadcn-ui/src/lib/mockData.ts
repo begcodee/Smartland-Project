@@ -2,7 +2,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'seller' | 'buyer' | 'arbitrator';
+  role: 'admin' | 'seller' | 'buyer' | 'arbitrator' | 'nia';
   verificationStatus: 'verified' | 'pending' | 'rejected';
   country: string;
   phoneNumber: string;
@@ -32,6 +32,9 @@ export interface User {
   };
   /** Ghana Card / NIA payload — pending until admin approves */
   idVerification?: { status: 'pending' | 'verified' | 'rejected'; [k: string]: unknown };
+  /** NIA official decision (set by NIA dashboard) */
+  niaStatus?: 'not_submitted' | 'pending' | 'verified' | 'rejected';
+  niaReferenceId?: string;
   /** Blockchain token generated on successful Ghana Lands Commission approval — unique per user, for smart contracts */
   blockchainToken?: string;
   /** Admin: Lands Commission employee / staff ID — required for admin login */
@@ -256,6 +259,24 @@ export const mockUsers: User[] = [
       successfulTransactions: 65,
       disputesWon: 42,
       communityVotes: 156
+    }
+  },
+  {
+    id: 'U006',
+    name: 'National Identification Authority',
+    email: 'nia@nia.gov.gh',
+    role: 'nia',
+    verificationStatus: 'verified',
+    country: 'GH',
+    phoneNumber: '+233302456789',
+    organization: 'National Identification Authority',
+    staffId: 'NIA-EMP-2024-001',
+    reputation: {
+      score: 96,
+      totalTransactions: 0,
+      successfulTransactions: 0,
+      disputesWon: 0,
+      communityVotes: 0
     }
   },
   {

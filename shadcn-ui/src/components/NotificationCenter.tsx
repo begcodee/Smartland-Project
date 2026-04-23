@@ -1,15 +1,14 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { 
   Bell, BellRing, CheckCircle, AlertCircle, Info, Clock, 
   Gavel, ArrowRightLeft, Shield, FileText, X
 } from 'lucide-react';
-import { useAuth } from '@/components/UserAuth';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 
 interface Notification {
   id: string;
@@ -22,58 +21,32 @@ interface Notification {
   category: 'transaction' | 'dispute' | 'verification' | 'system';
 }
 
-const mockNotifications: Notification[] = [
-  {
-    id: 'N001',
-    type: 'success',
-    title: 'Property Transfer Completed',
-    message: 'Your property transfer to Ahmed Hassan has been successfully completed and recorded on the blockchain.',
-    timestamp: '2024-10-09T10:30:00Z',
-    read: false,
-    category: 'transaction'
-  },
-  {
-    id: 'N002',
-    type: 'warning',
-    title: 'Dispute Filed Against Your Property',
-    message: 'A dispute has been filed regarding your property LP002. Please review and respond within 7 days.',
-    timestamp: '2024-10-08T15:45:00Z',
-    read: false,
-    category: 'dispute'
-  },
-  {
-    id: 'N003',
-    type: 'info',
-    title: 'Verification Status Updated',
-    message: 'Your account verification has been approved. You now have full access to all platform features.',
-    timestamp: '2024-10-07T09:15:00Z',
-    read: true,
-    category: 'verification'
-  },
-  {
-    id: 'N004',
-    type: 'info',
-    title: 'New Community Vote',
-    message: 'A new dispute requires community voting. Your participation helps maintain platform integrity.',
-    timestamp: '2024-10-06T14:20:00Z',
-    read: true,
-    category: 'dispute'
-  },
-  {
-    id: 'N005',
-    type: 'error',
-    title: 'Transaction Failed',
-    message: 'Your recent transaction failed due to insufficient gas fees. Please try again with higher gas limit.',
-    timestamp: '2024-10-05T11:30:00Z',
-    read: true,
-    category: 'transaction'
-  }
-];
+const fallbackNotifications: Notification[] = [];
 
 export const NotificationCenter = () => {
-  const { currentUser } = useAuth();
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>(fallbackNotifications);
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (user && isOpen) {
+      api.getNotifications()
+        .then((res) => {
+          if (res.success && Array.isArray(res.notifications)) {
+            setNotifications(res.notifications.map((n: { id: string; type?: string; title?: string; message?: string; createdAt?: string; read?: boolean; category?: string }) => ({
+              id: n.id,
+              type: (n.type as Notification['type']) ?? 'info',
+              title: n.title ?? '',
+              message: n.message ?? '',
+              timestamp: n.createdAt ?? new Date().toISOString(),
+              read: n.read ?? false,
+              category: (n.category as Notification['category']) ?? 'system'
+            })));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user?.id, isOpen]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -101,13 +74,13 @@ export const NotificationCenter = () => {
   };
 
   const markAsRead = (id: string) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ));
+    api.markNotificationRead(id).catch(() => {});
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
   const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+    notifications.filter(n => !n.read).forEach(n => api.markNotificationRead(n.id).catch(() => {}));
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
   const deleteNotification = (id: string) => {
@@ -125,7 +98,7 @@ export const NotificationCenter = () => {
     return date.toLocaleDateString();
   };
 
-  if (!currentUser) return null;
+  if (!user) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

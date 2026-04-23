@@ -12,6 +12,9 @@ import disputeRoutes from './routes/disputes.js';
 import notificationRoutes from './routes/notifications.js';
 import analyticsRoutes from './routes/analytics.js';
 import userRoutes from './routes/users.js';
+import conversationRoutes from './routes/conversations.js';
+import niaRoutes from './routes/nia.js';
+import niaEmployeeRoutes from './routes/niaEmployees.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -37,6 +40,9 @@ app.use('/api/disputes', disputeRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/conversations', conversationRoutes);
+app.use('/api/nia', niaRoutes);
+app.use('/api/nia/employees', niaEmployeeRoutes);
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'smartland-api' });

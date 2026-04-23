@@ -151,7 +151,7 @@ export const SearchAndFilter = ({ onFiltersChange, totalResults }: SearchAndFilt
                   <div className="space-y-3">
                     <Label className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4" />
-                      Price Range (USD)
+                      Price Range (Ghana Cedis)
                     </Label>
                     <div className="px-2">
                       <Slider
@@ -163,8 +163,8 @@ export const SearchAndFilter = ({ onFiltersChange, totalResults }: SearchAndFilt
                         className="w-full"
                       />
                       <div className="flex justify-between text-sm text-muted-foreground mt-1">
-                        <span>${filters.priceRange[0].toLocaleString()}</span>
-                        <span>${filters.priceRange[1].toLocaleString()}</span>
+                        <span>₵{filters.priceRange[0].toLocaleString()}</span>
+                        <span>₵{filters.priceRange[1].toLocaleString()}</span>
                       </div>
                     </div>
                   </div>

@@ -1,46 +1,50 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  User, LogOut, Settings, Shield, Home, ShoppingCart, Gavel, Building, 
-  Phone, MapPin, Calendar, CreditCard, Star, Trophy, TrendingUp,
-  Mail, Globe, Hash
+import {
+  User, Settings, Shield, MapPin, Building, CreditCard, Star, Trophy, PieChart,
+  Mail, Phone, TrendingUp
 } from 'lucide-react';
-import { User as UserType } from '@/types';
-import { useAuth } from '@/components/UserAuth';
+import { useAuth } from '@/contexts/AuthContext';
+import { formatCurrency } from '@/lib/mockData';
 
-export const UserProfileDialog = () => {
-  const { currentUser, logout, updateProfile } = useAuth();
+interface UserProfileDialogProps {
+  /** Controlled mode: when provided, renders only the dialog (no trigger) */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export const UserProfileDialog = ({ open, onOpenChange }: UserProfileDialogProps = {}) => {
+  const { user, logout, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState(currentUser || {} as UserType);
+  const [editData, setEditData] = useState({ name: '', email: '', phoneNumber: '' });
 
-  if (!currentUser) return null;
+  if (!user) return null;
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'landowner': return <Home className="w-4 h-4" />;
-      case 'buyer': return <ShoppingCart className="w-4 h-4" />;
-      case 'authority': return <Building className="w-4 h-4" />;
-      case 'arbitrator': return <Gavel className="w-4 h-4" />;
+      case 'seller': return <MapPin className="w-4 h-4" />;
+      case 'buyer': return <User className="w-4 h-4" />;
+      case 'admin': return <Shield className="w-4 h-4" />;
+      case 'arbitrator': return <Building className="w-4 h-4" />;
       default: return <User className="w-4 h-4" />;
     }
   };
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'landowner': return 'bg-blue-100 text-blue-800';
-      case 'buyer': return 'bg-green-100 text-green-800';
-      case 'authority': return 'bg-purple-100 text-purple-800';
-      case 'arbitrator': return 'bg-orange-100 text-orange-800';
+      case 'seller': return 'bg-emerald-100 text-emerald-800';
+      case 'buyer': return 'bg-cyan-100 text-cyan-800';
+      case 'admin': return 'bg-purple-100 text-purple-800';
+      case 'arbitrator': return 'bg-amber-100 text-amber-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -62,450 +66,329 @@ export const UserProfileDialog = () => {
     return { level: 'Poor', color: 'text-red-600', icon: '⚠️' };
   };
 
+  const handleEditStart = () => {
+    setEditData({ name: user.name, email: user.email, phoneNumber: user.phoneNumber });
+    setIsEditing(true);
+  };
+
   const handleSaveProfile = () => {
-    updateProfile(editData);
+    updateUser(editData);
     setIsEditing(false);
   };
 
-  const reputation = getReputationLevel(currentUser.reputation.score);
+  const reputation = user.reputation ? getReputationLevel(user.reputation.score) : null;
+  const avgStars = user.reputation && user.reputation.communityVotes > 0
+    ? Math.max(0, Math.min(5, user.reputation.score / 20))
+    : 0;
 
-  return (
-    <div className="flex items-center gap-4">
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button variant="ghost" className="flex items-center gap-2 h-auto p-2">
-            <Avatar className="w-8 h-8">
-              <AvatarImage src={currentUser.profile.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${currentUser.name}`} />
-              <AvatarFallback>{currentUser.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-            </Avatar>
-            <div className="text-left hidden sm:block">
-              <p className="text-sm font-medium">{currentUser.name}</p>
-              <p className="text-xs text-muted-foreground capitalize">{currentUser.role}</p>
-            </div>
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+  const content = (
+          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <User className="w-5 h-5" />
-              User Profile
+              Profile
             </DialogTitle>
             <DialogDescription>
-              Manage your account information, reputation, and settings
+              Your account and reputation
             </DialogDescription>
           </DialogHeader>
-          
-          <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+
+          <Tabs defaultValue="profile" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="profile">Profile</TabsTrigger>
-              <TabsTrigger value="reputation">Reputation</TabsTrigger>
-              <TabsTrigger value="activity">Activity</TabsTrigger>
+              <TabsTrigger value="reputation">Reputation & votes</TabsTrigger>
+              <TabsTrigger value="credit">Credit score</TabsTrigger>
+              <TabsTrigger value="financial">Financial</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="profile" className="space-y-6">
-              {/* Profile Header */}
-              <div className="flex items-center gap-6">
-                <Avatar className="w-20 h-20">
-                  <AvatarImage src={currentUser.profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.name}`} />
-                  <AvatarFallback className="text-2xl">
-                    {currentUser.name.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
+            <TabsContent value="profile" className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="w-16 h-16">
+                  <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} />
+                  <AvatarFallback className="text-xl">{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                 </Avatar>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-2xl font-bold">{currentUser.name}</h3>
-                    <Badge className={getRoleColor(currentUser.role)}>
-                      {getRoleIcon(currentUser.role)}
-                      <span className="ml-1 capitalize">{currentUser.role}</span>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-bold">{user.name}</h3>
+                    <Badge className={getRoleColor(user.role)}>
+                      {getRoleIcon(user.role)}
+                      <span className="ml-1 capitalize">{user.role}</span>
                     </Badge>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <Badge className={getVerificationColor(currentUser.verificationStatus)}>
-                      <Shield className="w-3 h-3 mr-1" />
-                      {currentUser.verificationStatus}
-                    </Badge>
-                    <div className="flex items-center gap-1">
+                  <Badge className={getVerificationColor(user.verificationStatus)}>
+                    <Shield className="w-3 h-3 mr-1" />
+                    {user.verificationStatus}
+                  </Badge>
+                  {reputation && (
+                    <div className="flex items-center gap-1 text-sm">
                       <Star className="w-4 h-4 text-yellow-500" />
-                      <span className="font-medium">{currentUser.reputation.score}/100</span>
-                      <span className={`text-sm ${reputation.color}`}>
-                        {reputation.icon} {reputation.level}
-                      </span>
+                      <span className="font-medium">{user.reputation!.score}/100</span>
+                      <span className={reputation.color}>{reputation.icon} {reputation.level}</span>
                     </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground max-w-md">
-                    {currentUser.profile.bio}
-                  </p>
+                  )}
                 </div>
               </div>
-
               <Separator />
-
               {isEditing ? (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Full Name</Label>
-                      <Input
-                        value={editData.name}
-                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Email</Label>
-                      <Input
-                        value={editData.email}
-                        onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Phone</Label>
-                      <Input
-                        value={editData.profile?.phone || ''}
-                        onChange={(e) => setEditData({ 
-                          ...editData, 
-                          profile: { ...editData.profile, phone: e.target.value }
-                        })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Date of Birth</Label>
-                      <Input
-                        type="date"
-                        value={editData.profile?.dateOfBirth || ''}
-                        onChange={(e) => setEditData({ 
-                          ...editData, 
-                          profile: { ...editData.profile, dateOfBirth: e.target.value }
-                        })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h4 className="font-semibold">Address Information</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2 md:col-span-2">
-                        <Label>Street Address</Label>
-                        <Input
-                          value={editData.profile?.address || ''}
-                          onChange={(e) => setEditData({ 
-                            ...editData, 
-                            profile: { ...editData.profile, address: e.target.value }
-                          })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>City</Label>
-                        <Input
-                          value={editData.profile?.city || ''}
-                          onChange={(e) => setEditData({ 
-                            ...editData, 
-                            profile: { ...editData.profile, city: e.target.value }
-                          })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>State</Label>
-                        <Input
-                          value={editData.profile?.state || ''}
-                          onChange={(e) => setEditData({ 
-                            ...editData, 
-                            profile: { ...editData.profile, state: e.target.value }
-                          })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Country</Label>
-                        <Input
-                          value={editData.profile?.country || ''}
-                          onChange={(e) => setEditData({ 
-                            ...editData, 
-                            profile: { ...editData.profile, country: e.target.value }
-                          })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Postal Code</Label>
-                        <Input
-                          value={editData.profile?.postalCode || ''}
-                          onChange={(e) => setEditData({ 
-                            ...editData, 
-                            profile: { ...editData.profile, postalCode: e.target.value }
-                          })}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Bio</Label>
-                    <Textarea
-                      value={editData.profile?.bio || ''}
-                      onChange={(e) => setEditData({ 
-                        ...editData, 
-                        profile: { ...editData.profile, bio: e.target.value }
-                      })}
-                      rows={3}
-                    />
+                    <Label>Full Name</Label>
+                    <Input value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} />
                   </div>
-
                   <div className="space-y-2">
-                    <Label>Wallet Address</Label>
-                    <Input
-                      value={editData.walletAddress}
-                      onChange={(e) => setEditData({ ...editData, walletAddress: e.target.value })}
-                      className="font-mono text-sm"
-                    />
+                    <Label>Email</Label>
+                    <Input type="email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} />
                   </div>
-
+                  <div className="space-y-2">
+                    <Label>Phone</Label>
+                    <Input value={editData.phoneNumber} onChange={(e) => setEditData({ ...editData, phoneNumber: e.target.value })} />
+                  </div>
                   <div className="flex gap-2">
-                    <Button onClick={handleSaveProfile}>Save Changes</Button>
+                    <Button onClick={handleSaveProfile}>Save</Button>
                     <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  {/* Contact Information */}
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      Contact Information
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Email</p>
+                        <p className="font-medium">{user.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Phone</p>
+                        <p className="font-medium">{user.phoneNumber}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Country</p>
+                        <p className="font-medium">{user.country}</p>
+                      </div>
+                    </div>
+                    {user.organization && (
                       <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <Building className="w-4 h-4 text-muted-foreground" />
                         <div>
-                          <p className="text-sm text-muted-foreground">Email</p>
-                          <p className="font-medium">{currentUser.email}</p>
+                          <p className="text-xs text-muted-foreground">Organization</p>
+                          <p className="font-medium">{user.organization}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Phone</p>
-                          <p className="font-medium">{currentUser.profile.phone}</p>
+                    )}
+                    {user.blockchainToken && (
+                      <div className="flex items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-emerald-600" />
+                          <div>
+                            <p className="text-xs text-muted-foreground">Blockchain token (unique ID)</p>
+                            <p className="font-mono text-sm break-all">{user.blockchainToken}</p>
+                          </div>
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(user.blockchainToken!);
+                          }}
+                        >
+                          Copy
+                        </Button>
                       </div>
-                    </div>
+                    )}
                   </div>
-
-                  {/* Address Information */}
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      Address
-                    </h4>
-                    <div className="space-y-2">
-                      <p>{currentUser.profile.address}</p>
-                      <p>{currentUser.profile.city}, {currentUser.profile.state} {currentUser.profile.postalCode}</p>
-                      <p>{currentUser.profile.country}</p>
-                    </div>
-                  </div>
-
-                  {/* Personal Information */}
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Personal Information
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Date of Birth</p>
-                        <p className="font-medium">{new Date(currentUser.profile.dateOfBirth).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">National ID</p>
-                        <p className="font-medium font-mono">{currentUser.profile.nationalId}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Member Since</p>
-                        <p className="font-medium">{new Date(currentUser.joinedDate).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Last Active</p>
-                        <p className="font-medium">{new Date(currentUser.lastActive).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Blockchain Information */}
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Hash className="w-4 h-4" />
-                      Blockchain Information
-                    </h4>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Wallet Address</p>
-                      <p className="font-mono text-sm break-all">{currentUser.walletAddress}</p>
-                    </div>
-                  </div>
-
-                  <Button variant="outline" onClick={() => setIsEditing(true)}>
+                  <Button variant="outline" onClick={handleEditStart}>
                     <Settings className="w-4 h-4 mr-2" />
-                    Edit Profile
+                    Edit profile
                   </Button>
                 </div>
               )}
             </TabsContent>
 
-            <TabsContent value="reputation" className="space-y-6">
-              {/* Reputation Score */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-yellow-500" />
-                    Reputation Score
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-3xl font-bold">{currentUser.reputation.score}/100</p>
-                      <p className={`text-sm ${reputation.color}`}>
-                        {reputation.icon} {reputation.level}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Last Updated</p>
-                      <p className="font-medium">{new Date(currentUser.reputation.lastUpdated).toLocaleDateString()}</p>
-                    </div>
+            <TabsContent value="reputation" className="space-y-4">
+              {user.reputation ? (
+                <>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Trophy className="w-5 h-5 text-yellow-500" />
+                        Reputation
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <p className="text-3xl font-bold">{user.reputation.score}/100</p>
+                        {reputation && (
+                          <p className={`text-sm ${reputation.color}`}>{reputation.icon} {reputation.level}</p>
+                        )}
+                        {user.reputation.communityVotes > 0 && (
+                          <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-4 h-4 ${avgStars >= i + 1 ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'}`}
+                                />
+                              ))}
+                            </span>
+                            <span>{avgStars.toFixed(1)}/5</span>
+                            <span>·</span>
+                            <span>{user.reputation.communityVotes} rating(s)</span>
+                          </div>
+                        )}
+                      </div>
+                      <Progress value={user.reputation.score} className="h-3" />
+                    </CardContent>
+                  </Card>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Card>
+                      <CardContent className="pt-4">
+                        <TrendingUp className="w-6 h-6 text-cyan-500 mb-2" />
+                        <div className="text-xl font-bold">{user.reputation.totalTransactions}</div>
+                        <p className="text-xs text-muted-foreground">Transactions</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <Trophy className="w-6 h-6 text-green-500 mb-2" />
+                        <div className="text-xl font-bold">{user.reputation.successfulTransactions}</div>
+                        <p className="text-xs text-muted-foreground">Successful</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <Shield className="w-6 h-6 text-amber-500 mb-2" />
+                        <div className="text-xl font-bold">{user.reputation.disputesWon}</div>
+                        <p className="text-xs text-muted-foreground">Disputes won</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <Star className="w-6 h-6 text-purple-500 mb-2" />
+                        <div className="text-xl font-bold">{user.reputation.communityVotes}</div>
+                        <p className="text-xs text-muted-foreground">Community votes</p>
+                      </CardContent>
+                    </Card>
                   </div>
-                  <Progress value={currentUser.reputation.score} className="h-3" />
-                </CardContent>
-              </Card>
-
-              {/* Reputation Metrics */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <TrendingUp className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                      <div className="text-2xl font-bold">{currentUser.reputation.totalTransactions}</div>
-                      <p className="text-sm text-muted-foreground">Total Transactions</p>
+                  {user.reputation.totalTransactions > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      Success rate: {Math.round((user.reputation.successfulTransactions / user.reputation.totalTransactions) * 100)}%
                     </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <Trophy className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                      <div className="text-2xl font-bold">{currentUser.reputation.successfulTransactions}</div>
-                      <p className="text-sm text-muted-foreground">Successful</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <Gavel className="w-8 h-8 text-orange-500 mx-auto mb-2" />
-                      <div className="text-2xl font-bold">{currentUser.reputation.disputesWon}</div>
-                      <p className="text-sm text-muted-foreground">Disputes Won</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <Star className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-                      <div className="text-2xl font-bold">{currentUser.reputation.communityVotes}</div>
-                      <p className="text-sm text-muted-foreground">Community Votes</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Success Rate */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Success Rate</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Transaction Success Rate</span>
-                      <span className="font-medium">
-                        {((currentUser.reputation.successfulTransactions / currentUser.reputation.totalTransactions) * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                    <Progress 
-                      value={(currentUser.reputation.successfulTransactions / currentUser.reputation.totalTransactions) * 100} 
-                      className="h-2" 
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+                  )}
+                </>
+              ) : (
+                <p className="text-muted-foreground text-sm">No reputation data yet. Complete transactions to build your score.</p>
+              )}
             </TabsContent>
 
-            <TabsContent value="activity" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Activity</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3 p-2 border rounded">
-                        <Shield className="w-4 h-4 text-green-600" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Profile Verified</p>
-                          <p className="text-xs text-muted-foreground">2 days ago</p>
+            <TabsContent value="credit" className="space-y-4">
+              {user.creditScore ? (
+                <>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CreditCard className="w-5 h-5 text-cyan-500" />
+                        Credit score
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-3xl font-bold">{user.creditScore.score}</p>
+                          <p className="text-sm text-muted-foreground">{user.creditScore.rating}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 p-2 border rounded">
-                        <TrendingUp className="w-4 h-4 text-blue-600" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Reputation Updated</p>
-                          <p className="text-xs text-muted-foreground">1 week ago</p>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Payment history</span>
+                          <span>{user.creditScore.paymentHistory}%</span>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-2 border rounded">
-                        <Gavel className="w-4 h-4 text-orange-600" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Participated in Dispute Vote</p>
-                          <p className="text-xs text-muted-foreground">2 weeks ago</p>
+                        <Progress value={user.creditScore.paymentHistory} className="h-2" />
+                        <div className="flex justify-between text-sm">
+                          <span>Credit utilization</span>
+                          <span>{user.creditScore.creditUtilization}%</span>
                         </div>
+                        <Progress value={100 - user.creditScore.creditUtilization} className="h-2" />
+                        <div className="flex justify-between text-sm">
+                          <span>Length of history</span>
+                          <span>{user.creditScore.lengthOfHistory}%</span>
+                        </div>
+                        <Progress value={user.creditScore.lengthOfHistory} className="h-2" />
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+                <p className="text-muted-foreground text-sm">No credit score data yet.</p>
+              )}
+            </TabsContent>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Account Statistics</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex justify-between">
-                        <span className="text-sm">Profile Completeness</span>
-                        <span className="font-medium">95%</span>
-                      </div>
-                      <Progress value={95} className="h-2" />
-                      
-                      <div className="flex justify-between">
-                        <span className="text-sm">Verification Level</span>
-                        <Badge className="bg-green-100 text-green-800">Verified</Badge>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span className="text-sm">Account Age</span>
-                        <span className="font-medium">
-                          {Math.floor((new Date().getTime() - new Date(currentUser.joinedDate).getTime()) / (1000 * 60 * 60 * 24 * 365))} years
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+            <TabsContent value="financial" className="space-y-4">
+              {user.financialProfile ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card>
+                    <CardContent className="pt-4">
+                      <PieChart className="w-6 h-6 text-emerald-500 mb-2" />
+                      <p className="text-xs text-muted-foreground">Monthly income</p>
+                      <p className="text-xl font-bold text-emerald-600">{formatCurrency(user.financialProfile.monthlyIncome)}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-4">
+                      <TrendingUp className="w-6 h-6 text-cyan-500 mb-2" />
+                      <p className="text-xs text-muted-foreground">Net worth</p>
+                      <p className="text-xl font-bold text-cyan-600">{formatCurrency(user.financialProfile.netWorth)}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-4">
+                      <p className="text-xs text-muted-foreground">Total assets</p>
+                      <p className="text-xl font-bold">{formatCurrency(user.financialProfile.assets)}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-4">
+                      <p className="text-xs text-muted-foreground">Banking history</p>
+                      <p className="text-xl font-bold">{user.financialProfile.bankingHistory} years</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm">No financial profile data yet.</p>
+              )}
             </TabsContent>
           </Tabs>
         </DialogContent>
+  );
+
+  if (open !== undefined && onOpenChange !== undefined) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        {content}
       </Dialog>
-      
-      <Button variant="ghost" size="sm" onClick={logout}>
-        <LogOut className="w-4 h-4" />
-      </Button>
-    </div>
+    );
+  }
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="ghost" className="flex items-center gap-2 h-auto p-2">
+          <Avatar className="w-8 h-8">
+            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.name}`} />
+            <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+          </Avatar>
+          <div className="text-left hidden sm:block">
+            <p className="text-sm font-medium">{user.name}</p>
+            <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+          </div>
+        </Button>
+      </DialogTrigger>
+      {content}
+    </Dialog>
   );
 };

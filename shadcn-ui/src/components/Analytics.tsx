@@ -1,46 +1,63 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { 
-  TrendingUp, TrendingDown, BarChart3, PieChart, 
-  DollarSign, MapPin, Users, Activity, Calendar,
+  TrendingDown, BarChart3, PieChart, 
+  DollarSign, MapPin, Users, Activity,
   ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
-import { mockLandParcels, mockDisputes, mockTransfers, mockUsers } from '@/lib/mockData';
-import { useAuth } from '@/components/UserAuth';
+import { mockLandParcels, mockDisputes, mockTransfers, mockUsers, formatCurrency } from '@/lib/mockData';
+import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const Analytics = () => {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
+  const [analytics, setAnalytics] = useState<{
+    totalProperties: number;
+    totalValue: number;
+    activeDisputes: number;
+    pendingTransfers: number;
+    verifiedUsers: number;
+    roleDistribution: { sellers: number; buyers: number; admins: number; arbitrators: number };
+    statusDistribution: { active: number; disputed: number; transferPending: number };
+  } | null>(null);
 
-  // Calculate analytics data
-  const totalProperties = mockLandParcels.length;
-  const totalValue = mockLandParcels.reduce((sum, p) => sum + p.value, 0);
-  const activeDisputes = mockDisputes.filter(d => d.status !== 'resolved').length;
-  const pendingTransfers = mockTransfers.filter(t => t.status === 'pending').length;
-  const verifiedUsers = mockUsers.filter(u => u.verificationStatus === 'verified').length;
+  useEffect(() => {
+    api.getAnalytics()
+      .then((res) => {
+        if (res.success && res.analytics) {
+          setAnalytics(res.analytics);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
-  // Monthly trends (mock data)
+  const totalProperties = analytics?.totalProperties ?? mockLandParcels.length;
+  const totalValue = analytics?.totalValue ?? mockLandParcels.reduce((sum, p) => sum + (p.value ?? p.price ?? 0), 0);
+  const activeDisputes = analytics?.activeDisputes ?? mockDisputes.filter(d => d.status !== 'resolved').length;
+  const verifiedUsers = analytics?.verifiedUsers ?? mockUsers.filter(u => u.verificationStatus === 'verified').length;
+
   const monthlyData = {
-    properties: { current: 15, previous: 12, change: 25 },
+    properties: { current: totalProperties, previous: Math.max(0, totalProperties - 3), change: 25 },
     transactions: { current: 8, previous: 6, change: 33.3 },
-    disputes: { current: 2, previous: 4, change: -50 },
-    value: { current: 395000, previous: 320000, change: 23.4 }
+    disputes: { current: activeDisputes, previous: Math.max(0, activeDisputes - 2), change: -50 },
+    value: { current: totalValue, previous: Math.max(0, totalValue - 50000), change: 23.4 }
   };
 
-  // Property distribution by status
-  const statusDistribution = {
-    active: mockLandParcels.filter(p => p.status === 'active').length,
+  const statusDistribution = analytics?.statusDistribution ?? {
+    active: mockLandParcels.filter(p => p.status === 'available' || p.status === 'active').length,
     disputed: mockLandParcels.filter(p => p.status === 'disputed').length,
-    transferPending: mockLandParcels.filter(p => p.status === 'transfer_pending').length
+    transferPending: mockLandParcels.filter(p => p.status === 'pending' || p.status === 'transfer_pending').length
   };
 
-  // User role distribution
-  const roleDistribution = {
-    landowners: mockUsers.filter(u => u.role === 'landowner').length,
+  const roleDistribution = analytics?.roleDistribution ?? {
+    sellers: mockUsers.filter(u => u.role === 'seller').length,
     buyers: mockUsers.filter(u => u.role === 'buyer').length,
-    authorities: mockUsers.filter(u => u.role === 'authority').length,
+    admins: mockUsers.filter(u => u.role === 'admin').length,
     arbitrators: mockUsers.filter(u => u.role === 'arbitrator').length
   };
+  const totalUsers = roleDistribution.sellers + roleDistribution.buyers + roleDistribution.admins + roleDistribution.arbitrators;
 
   const getTrendIcon = (change: number) => {
     return change > 0 ? (
@@ -83,7 +100,7 @@ export const Analytics = () => {
             <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-green-700">Total Value</p>
-                <p className="text-3xl font-bold text-green-900">${(totalValue / 1000).toFixed(0)}K</p>
+                <p className="text-3xl font-bold text-green-900">{formatCurrency(totalValue)}</p>
                 <div className="flex items-center gap-1">
                   {getTrendIcon(monthlyData.value.change)}
                   <span className={`text-xs ${getTrendColor(monthlyData.value.change)}`}>
@@ -127,7 +144,7 @@ export const Analytics = () => {
                 <div className="flex items-center gap-1">
                   <ArrowUpRight className="w-4 h-4 text-green-600" />
                   <span className="text-xs text-green-600">
-                    {((verifiedUsers / mockUsers.length) * 100).toFixed(0)}% verification rate
+                    {totalUsers > 0 ? ((verifiedUsers / totalUsers) * 100).toFixed(0) : 0}% verification rate
                   </span>
                 </div>
               </div>
@@ -215,16 +232,16 @@ export const Analytics = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm">Landowners</span>
+                  <span className="text-sm">Sellers</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{roleDistribution.landowners}</span>
+                  <span className="text-sm font-medium">{roleDistribution.sellers}</span>
                   <Badge variant="outline">
-                    {((roleDistribution.landowners / mockUsers.length) * 100).toFixed(0)}%
+                    {totalUsers > 0 ? ((roleDistribution.sellers / totalUsers) * 100).toFixed(0) : 0}%
                   </Badge>
                 </div>
               </div>
-              <Progress value={(roleDistribution.landowners / mockUsers.length) * 100} className="h-2" />
+              <Progress value={totalUsers > 0 ? (roleDistribution.sellers / totalUsers) * 100 : 0} className="h-2" />
             </div>
 
             <div className="space-y-3">
@@ -236,27 +253,27 @@ export const Analytics = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{roleDistribution.buyers}</span>
                   <Badge variant="outline">
-                    {((roleDistribution.buyers / mockUsers.length) * 100).toFixed(0)}%
+                    {totalUsers > 0 ? ((roleDistribution.buyers / totalUsers) * 100).toFixed(0) : 0}%
                   </Badge>
                 </div>
               </div>
-              <Progress value={(roleDistribution.buyers / mockUsers.length) * 100} className="h-2" />
+              <Progress value={totalUsers > 0 ? (roleDistribution.buyers / totalUsers) * 100 : 0} className="h-2" />
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                  <span className="text-sm">Authorities</span>
+                  <span className="text-sm">Admins</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{roleDistribution.authorities}</span>
+                  <span className="text-sm font-medium">{roleDistribution.admins}</span>
                   <Badge variant="outline">
-                    {((roleDistribution.authorities / mockUsers.length) * 100).toFixed(0)}%
+                    {totalUsers > 0 ? ((roleDistribution.admins / totalUsers) * 100).toFixed(0) : 0}%
                   </Badge>
                 </div>
               </div>
-              <Progress value={(roleDistribution.authorities / mockUsers.length) * 100} className="h-2" />
+              <Progress value={totalUsers > 0 ? (roleDistribution.admins / totalUsers) * 100 : 0} className="h-2" />
             </div>
 
             <div className="space-y-3">
@@ -268,11 +285,11 @@ export const Analytics = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{roleDistribution.arbitrators}</span>
                   <Badge variant="outline">
-                    {((roleDistribution.arbitrators / mockUsers.length) * 100).toFixed(0)}%
+                    {totalUsers > 0 ? ((roleDistribution.arbitrators / totalUsers) * 100).toFixed(0) : 0}%
                   </Badge>
                 </div>
               </div>
-              <Progress value={(roleDistribution.arbitrators / mockUsers.length) * 100} className="h-2" />
+              <Progress value={totalUsers > 0 ? (roleDistribution.arbitrators / totalUsers) * 100 : 0} className="h-2" />
             </div>
           </CardContent>
         </Card>
@@ -343,7 +360,7 @@ export const Analytics = () => {
                 <span className="text-sm font-medium text-purple-700">Total Value</span>
               </div>
               <div className="text-2xl font-bold text-purple-900 mb-1">
-                ${(monthlyData.value.current / 1000).toFixed(0)}K
+                {formatCurrency(monthlyData.value.current)}
               </div>
               <div className="flex items-center justify-center gap-1">
                 {getTrendIcon(monthlyData.value.change)}

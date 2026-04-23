@@ -25,7 +25,7 @@ export interface Dispute {
   defendant: string;
   description: string;
   evidence: string[];
-  status: 'pending' | 'under_review' | 'community_voting' | 'resolved' | 'rejected';
+  status: 'filed' | 'pending' | 'under_review' | 'community_voting' | 'resolved';
   filedDate: string;
   resolution?: string;
   votes?: {
@@ -48,36 +48,42 @@ export interface Transfer {
   escrowHash?: string;
 }
 
+/** User type - aligned with @/lib/mockData */
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'landowner' | 'buyer' | 'authority' | 'arbitrator';
-  walletAddress: string;
+  role: 'admin' | 'seller' | 'buyer' | 'arbitrator' | 'nia';
   verificationStatus: 'pending' | 'verified' | 'rejected';
-  profile: {
-    phone: string;
-    address: string;
-    city: string;
-    state: string;
-    country: string;
-    postalCode: string;
-    dateOfBirth: string;
-    nationalId: string;
-    bio: string;
-    avatar?: string;
-  };
-  reputation: {
-    score: number; // 0-100
+  country: string;
+  phoneNumber: string;
+  organization?: string;
+  reputation?: {
+    score: number;
     totalTransactions: number;
     successfulTransactions: number;
     disputesWon: number;
-    disputesLost: number;
     communityVotes: number;
-    lastUpdated: string;
   };
-  joinedDate: string;
-  lastActive: string;
+  creditScore?: {
+    score: number;
+    rating: string;
+    paymentHistory: number;
+    creditUtilization: number;
+    lengthOfHistory: number;
+    newCredit: number;
+    creditMix: number;
+  };
+  financialProfile?: {
+    monthlyIncome: number;
+    assets: number;
+    liabilities: number;
+    netWorth: number;
+    bankingHistory: number;
+  };
+  idVerification?: { status: 'pending' | 'verified' | 'rejected'; [k: string]: unknown };
+  niaStatus?: 'not_submitted' | 'pending' | 'verified' | 'rejected';
+  niaReferenceId?: string;
 }
 
 export interface SmartContract {

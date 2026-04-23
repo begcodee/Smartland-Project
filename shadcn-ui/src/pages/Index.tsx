@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Shield, Mail, Lock, Eye, EyeOff,
-  UserPlus, LogIn, ShieldCheck, Gavel, MapPin, ShoppingBag, UserRound
+  UserPlus, LogIn, ShieldCheck, Gavel, MapPin, ShoppingBag, UserRound, Fingerprint
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { NewUserRegistrationFlow } from '@/components/NewUserRegistrationFlow';
@@ -41,6 +41,7 @@ export default function Index() {
       /admin|landregistry\.gh|ghanalandcommission/i.test(email) ? 'admin' :
       /seller|john\.doe/i.test(email) ? 'seller' :
       /buyer|akosua|frimpong/i.test(email) ? 'buyer' :
+      /nia|nationalid|nia\.gov/i.test(email) ? 'nia' :
       /arbitrator|ama\.osei/i.test(email) ? 'arbitrator' : 'seller'
     );
     if (effectiveRole === 'admin' && !roleCredential.trim()) {
@@ -49,6 +50,10 @@ export default function Index() {
     }
     if (effectiveRole === 'arbitrator' && !roleCredential.trim()) {
       toast.error('Arbitrator registration number is required');
+      return;
+    }
+    if (effectiveRole === 'nia' && !roleCredential.trim()) {
+      toast.error('NIA Staff ID is required');
       return;
     }
     setIsLoading(true);
@@ -62,7 +67,7 @@ export default function Index() {
           name: u.name,
           email: u.email,
           role: u.role as Role,
-          verificationStatus: u.verificationStatus || 'verified',
+          verificationStatus: u.verificationStatus || 'pending',
           country: u.country || 'GH',
           phoneNumber: u.phoneNumber,
           organization: u.organization,
@@ -106,21 +111,24 @@ export default function Index() {
         admin: 'Ghana Land Commission Admin',
         seller: 'John Doe',
         buyer: 'Akosua Frimpong',
-        arbitrator: 'Dr. Ama Osei'
+        arbitrator: 'Dr. Ama Osei',
+        nia: 'NIA Verification Officer'
       };
       mockUser = {
         id: Date.now().toString(),
         name: names[effectiveRole],
         email,
         role: effectiveRole,
-        verificationStatus: 'verified',
+        verificationStatus: 'pending',
         country: 'GH',
         phoneNumber: '+233244123456',
         staffId: effectiveRole === 'admin' ? roleCredential.trim() || undefined : undefined,
         arbitratorRegNo: effectiveRole === 'arbitrator' ? roleCredential.trim() || undefined : undefined,
-        reputation: { score: 92, totalTransactions: 15, successfulTransactions: 14, disputesWon: 3, communityVotes: 45 },
-        creditScore: { score: 785, rating: 'Excellent', paymentHistory: 95, creditUtilization: 25, lengthOfHistory: 88, newCredit: 82, creditMix: 90 },
-        financialProfile: { monthlyIncome: 8500, assets: 450000, liabilities: 125000, netWorth: 325000, bankingHistory: 12 }
+        organization: effectiveRole === 'nia' ? 'National Identification Authority' : undefined,
+        // New / unknown accounts should start unscored.
+        reputation: { score: 0, totalTransactions: 0, successfulTransactions: 0, disputesWon: 0, communityVotes: 0 },
+        creditScore: { score: 0, rating: 'Unscored', paymentHistory: 0, creditUtilization: 0, lengthOfHistory: 0, newCredit: 0, creditMix: 0 },
+        financialProfile: { monthlyIncome: 0, assets: 0, liabilities: 0, netWorth: 0, bankingHistory: 0 }
       } as User;
     }
     if (fullName.trim()) mockUser.name = fullName.trim();
@@ -133,7 +141,6 @@ export default function Index() {
   if (showNewUserFlow) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.12),transparent_45%),radial-gradient(circle_at_bottom_right,hsl(var(--accent)/0.12),transparent_40%)]" />
         <div className="w-full max-w-2xl relative z-10">
           <div className="text-center mb-6">
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">New user registration</h1>
@@ -153,7 +160,6 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.12),transparent_45%),radial-gradient(circle_at_bottom_right,hsl(var(--accent)/0.12),transparent_40%)]" />
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-[0_10px_24px_hsl(var(--primary)/0.28)] ring-4 ring-accent/25">
@@ -205,20 +211,21 @@ export default function Index() {
                         <SelectItem value="seller"><MapPin className="w-4 h-4 mr-2 inline" /> Seller</SelectItem>
                         <SelectItem value="admin"><ShieldCheck className="w-4 h-4 mr-2 inline" /> Admin (Ghana Lands Commission)</SelectItem>
                         <SelectItem value="arbitrator"><Gavel className="w-4 h-4 mr-2 inline" /> Arbitrator</SelectItem>
+                        <SelectItem value="nia"><Fingerprint className="w-4 h-4 mr-2 inline" /> NIA Employee</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  {(loginRole === 'admin' || loginRole === 'arbitrator') && (
+                  {(loginRole === 'admin' || loginRole === 'arbitrator' || loginRole === 'nia') && (
                     <div className="space-y-2">
                       <Label className="text-gray-700">
-                        {loginRole === 'admin' ? 'Staff ID (Lands Commission)' : 'Arbitrator registration no.'}
+                        {loginRole === 'admin' ? 'Staff ID (Lands Commission)' : loginRole === 'nia' ? 'Staff ID (NIA)' : 'Arbitrator registration no.'}
                       </Label>
                       <Input
-                        placeholder={loginRole === 'admin' ? 'e.g. GLC-EMP-2024-001' : 'e.g. ARB-GH-2023-045'}
+                        placeholder={loginRole === 'admin' ? 'e.g. GLC-EMP-2024-001' : loginRole === 'nia' ? 'e.g. NIA-EMP-2024-001' : 'e.g. ARB-GH-2023-045'}
                         value={roleCredential}
                         onChange={(e) => setRoleCredential(e.target.value)}
                         className="pl-10"
-                        required={loginRole === 'admin' || loginRole === 'arbitrator'}
+                        required={loginRole === 'admin' || loginRole === 'arbitrator' || loginRole === 'nia'}
                       />
                     </div>
                   )}
@@ -248,7 +255,7 @@ export default function Index() {
                     {isLoading ? 'Signing in...' : 'Sign in'}
                   </Button>
                   <p className="text-xs text-muted-foreground text-center">
-                    Demo: Buyer akosua.frimpong@yahoo.com · Seller john.doe@gmail.com · Admin admin@ghanalandcommission.gov.gh + GLC-EMP-2024-001 · Arbitrator ama.osei@arbitrator.gh + ARB-GH-2023-045
+                    Demo: Buyer akosua.frimpong@yahoo.com · Seller john.doe@gmail.com · Admin admin@ghanalandcommission.gov.gh + GLC-EMP-2024-001 · Arbitrator ama.osei@arbitrator.gh + ARB-GH-2023-045 · NIA nia@nia.gov.gh + NIA-EMP-2024-001
                   </p>
                 </form>
               </TabsContent>

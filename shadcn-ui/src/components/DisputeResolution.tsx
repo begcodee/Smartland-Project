@@ -1,102 +1,200 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
-import { Gavel, Users, FileText, Plus, ThumbsUp, ThumbsDown, Minus } from 'lucide-react';
-import { mockDisputes, mockLandParcels, blockchainService } from '@/lib/mockData';
+import { Gavel, FileText, Plus, ThumbsUp, ThumbsDown, Minus } from 'lucide-react';
+import { mockDisputes, mockLandParcels } from '@/lib/mockData';
 import { Dispute } from '@/types';
+import { api } from '@/lib/api';
+import { mapApiParcelToLandParcel } from '@/lib/parcelMapper';
+import { useAuth, isUserRestricted } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+function ResolveDisputeDialog({ disputeId, onResolved }: { disputeId: string; onResolved: (resolution: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [resolution, setResolution] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const handleResolve = async () => {
+    if (!resolution.trim()) return;
+    setSubmitting(true);
+    try {
+      await api.resolveDispute(disputeId, resolution.trim());
+      onResolved(resolution.trim());
+      setOpen(false);
+      setResolution('');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="w-full">Resolve Dispute</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Resolve Dispute</DialogTitle>
+          <DialogDescription>Enter the resolution details</DialogDescription>
+        </DialogHeader>
+        <Textarea
+          placeholder="Resolution text..."
+          value={resolution}
+          onChange={(e) => setResolution(e.target.value)}
+          rows={4}
+        />
+        <Button onClick={handleResolve} disabled={!resolution.trim() || submitting}>
+          {submitting ? 'Submitting...' : 'Submit Resolution'}
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function mapApiDispute(d: { id: string; landParcelId: string; plaintiff?: { name?: string }; defendant?: { name?: string }; description?: string; status?: string; filedDate?: string; evidence?: unknown[]; supportVotes?: number; againstVotes?: number; abstainVotes?: number; resolution?: string | null }) {
+  return {
+    id: d.id,
+    landParcelId: d.landParcelId,
+    plaintiff: (d.plaintiff && typeof d.plaintiff === 'object' && d.plaintiff.name) ? d.plaintiff.name : 'Unknown',
+    defendant: (d.defendant && typeof d.defendant === 'object' && d.defendant.name) ? d.defendant.name : 'Unknown',
+    description: d.description ?? '',
+    evidence: Array.isArray(d.evidence) ? d.evidence.map((e: { fileName?: string }) => e?.fileName ?? String(e)) : [],
+    status: (d.status ?? 'filed') as Dispute['status'],
+    filedDate: d.filedDate ? new Date(d.filedDate).toISOString().split('T')[0] : '',
+    votes: {
+      support: d.supportVotes ?? 0,
+      against: d.againstVotes ?? 0,
+      abstain: d.abstainVotes ?? 0
+    },
+    resolution: d.resolution ?? undefined
+  };
+}
+
 export default function DisputeResolution() {
-  const [disputes, setDisputes] = useState(mockDisputes);
+  const { user } = useAuth();
+  const restrictedUser = isUserRestricted(user);
+  const [disputes, setDisputes] = useState<Dispute[]>(mockDisputes);
+  const [parcels, setParcels] = useState(mockLandParcels);
+  const [users, setUsers] = useState<{ id: string; name: string; email: string }[]>([]);
   const [newDispute, setNewDispute] = useState({
     landParcelId: '',
-    plaintiff: '',
-    defendant: '',
+    defendantUserId: '',
     description: '',
     evidence: ''
   });
   const [isCreating, setIsCreating] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let ok = true;
+    (async () => {
+      try {
+        const [dispRes, parcelRes, userRes] = await Promise.all([
+          api.getDisputes().catch(() => null),
+          api.getParcels().catch(() => null),
+          api.getUsers().catch(() => null)
+        ]);
+        if (!ok) return;
+        if (dispRes?.success && Array.isArray(dispRes.disputes)) {
+          setDisputes(dispRes.disputes.map((d: object) => mapApiDispute(d as Parameters<typeof mapApiDispute>[0])));
+        }
+        if (parcelRes?.success && Array.isArray(parcelRes.parcels)) {
+          setParcels(parcelRes.parcels.map((p: object) => mapApiParcelToLandParcel(p as Parameters<typeof mapApiParcelToLandParcel>[0])));
+        }
+        if (userRes?.success && Array.isArray(userRes.users)) {
+          setUsers(userRes.users);
+        }
+      } finally {
+        if (ok) setLoading(false);
+      }
+    })();
+    return () => { ok = false; };
+  }, []);
 
   const handleCreateDispute = async () => {
-    if (!newDispute.landParcelId || !newDispute.plaintiff || !newDispute.defendant || !newDispute.description) {
-      toast.error('Please fill in all required fields');
+    if (restrictedUser) {
+      toast.error('Your account is pending verification. Dispute actions are locked for now.');
+      return;
+    }
+    if (!newDispute.landParcelId || !newDispute.defendantUserId || !newDispute.description) {
+      toast.error('Please fill in all required fields (parcel, defendant, description)');
       return;
     }
 
     setIsCreating(true);
     try {
-      const disputeData = {
+      const result = await api.createDispute({
         landParcelId: newDispute.landParcelId,
-        plaintiff: newDispute.plaintiff,
-        defendant: newDispute.defendant,
+        defendantUserId: newDispute.defendantUserId,
         description: newDispute.description,
-        evidence: newDispute.evidence.split(',').map(e => e.trim()).filter(e => e),
-        status: 'pending' as const,
-        filedDate: new Date().toISOString().split('T')[0]
-      };
-
-      const result = await blockchainService.createDispute(disputeData);
-
-      if (result.success) {
-        const dispute: Dispute = {
-          ...disputeData,
-          id: `D${String(disputes.length + 1).padStart(3, '0')}`
-        };
-
-        setDisputes([...disputes, dispute]);
-        setNewDispute({ landParcelId: '', plaintiff: '', defendant: '', description: '', evidence: '' });
-        toast.success(`Dispute filed successfully! Gas used: ${result.gasUsed}`);
+        evidence: newDispute.evidence ? newDispute.evidence.split(',').map(e => e.trim()).filter(Boolean) : undefined
+      });
+      if (result.success && result.dispute) {
+        setDisputes(prev => [...prev, mapApiDispute(result.dispute)]);
+        setNewDispute({ landParcelId: '', defendantUserId: '', description: '', evidence: '' });
+        toast.success('Dispute filed successfully');
       }
     } catch (error) {
-      toast.error('Failed to file dispute on blockchain');
+      toast.error(error instanceof Error ? error.message : 'Failed to file dispute');
     } finally {
       setIsCreating(false);
     }
   };
 
   const handleVote = async (disputeId: string, vote: 'support' | 'against' | 'abstain') => {
+    if (restrictedUser) {
+      toast.error('Your account is pending verification. Voting is locked for now.');
+      return;
+    }
     try {
-      const result = await blockchainService.voteOnDispute(disputeId, vote);
-      
-      if (result.success) {
-        setDisputes(disputes.map(dispute => {
-          if (dispute.id === disputeId && dispute.votes) {
-            const newVotes = { ...dispute.votes };
-            newVotes[vote]++;
-            return { ...dispute, votes: newVotes };
-          }
-          return dispute;
-        }));
-        toast.success(`Vote recorded! Gas used: ${result.gasUsed}`);
-      }
+      await api.voteDispute(disputeId, vote);
+      setDisputes(prev => prev.map(d => {
+        if (d.id === disputeId && d.votes) {
+          const v = { ...d.votes };
+          v[vote]++;
+          return { ...d, votes: v };
+        }
+        return d;
+      }));
+      toast.success('Vote recorded');
     } catch (error) {
-      toast.error('Failed to record vote on blockchain');
+      toast.error(error instanceof Error ? error.message : 'Failed to record vote');
     }
   };
 
-  const handleResolveDispute = (disputeId: string, resolution: string) => {
-    setDisputes(disputes.map(dispute => 
-      dispute.id === disputeId 
-        ? { ...dispute, status: 'resolved', resolution }
-        : dispute
-    ));
-    toast.success('Dispute resolved successfully');
+  const handleResolveDispute = async (disputeId: string, resolution: string) => {
+    if (restrictedUser) {
+      toast.error('Your account is pending verification. Resolution actions are locked for now.');
+      return;
+    }
+    if (!resolution.trim()) {
+      toast.error('Please enter a resolution');
+      return;
+    }
+    try {
+      await api.resolveDispute(disputeId, resolution);
+      setDisputes(prev => prev.map(d => d.id === disputeId ? { ...d, status: 'resolved' as const, resolution } : d));
+      toast.success('Dispute resolved successfully');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to resolve dispute');
+    }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'filed':
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'under_review': return 'bg-blue-100 text-blue-800';
       case 'community_voting': return 'bg-purple-100 text-purple-800';
       case 'resolved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -108,6 +206,13 @@ export default function DisputeResolution() {
 
   return (
     <div className="space-y-6">
+      {restrictedUser && (
+        <Alert className="border-amber-300 bg-amber-50">
+          <AlertDescription className="text-amber-900">
+            Your account is pending verification. You can view disputes, but filing, voting, and resolution actions are disabled until approval.
+          </AlertDescription>
+        </Alert>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div>
@@ -117,7 +222,7 @@ export default function DisputeResolution() {
         
         <Dialog>
           <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
+            <Button className="flex items-center gap-2" disabled={restrictedUser}>
               <Plus className="w-4 h-4" />
               File New Dispute
             </Button>
@@ -139,33 +244,30 @@ export default function DisputeResolution() {
                     <SelectValue placeholder="Select the disputed land parcel" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockLandParcels.map((parcel) => (
+                    {parcels.map((parcel) => (
                       <SelectItem key={parcel.id} value={parcel.id}>
-                        {parcel.title} - {parcel.owner}
+                        {parcel.title} - {parcel.owner ?? 'N/A'}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="plaintiff">Plaintiff (Your Name)</Label>
-                  <Input
-                    id="plaintiff"
-                    placeholder="Your full name"
-                    value={newDispute.plaintiff}
-                    onChange={(e) => setNewDispute({ ...newDispute, plaintiff: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="defendant">Defendant</Label>
-                  <Input
-                    id="defendant"
-                    placeholder="Name of the opposing party"
-                    value={newDispute.defendant}
-                    onChange={(e) => setNewDispute({ ...newDispute, defendant: e.target.value })}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="defendant">Defendant (opposing party)</Label>
+                <Select value={newDispute.defendantUserId} onValueChange={(value) => 
+                  setNewDispute({ ...newDispute, defendantUserId: value })
+                }>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select defendant user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.filter(u => u.id !== user?.id).map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} ({u.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Dispute Description</Label>
@@ -189,7 +291,7 @@ export default function DisputeResolution() {
             </div>
             <Button 
               onClick={handleCreateDispute} 
-              disabled={isCreating}
+              disabled={isCreating || restrictedUser}
               className="w-full"
             >
               {isCreating ? 'Filing Dispute...' : 'File Dispute'}
@@ -233,7 +335,7 @@ export default function DisputeResolution() {
       {/* Active Disputes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {disputes.map((dispute) => {
-          const parcel = mockLandParcels.find(p => p.id === dispute.landParcelId);
+          const parcel = parcels.find(p => p.id === dispute.landParcelId);
           return (
             <Card key={dispute.id}>
               <CardHeader className="pb-3">
@@ -315,6 +417,7 @@ export default function DisputeResolution() {
                         size="sm" 
                         variant="outline"
                         onClick={() => handleVote(dispute.id, 'support')}
+                        disabled={restrictedUser}
                         className="flex-1"
                       >
                         <ThumbsUp className="w-3 h-3 mr-1" />
@@ -324,6 +427,7 @@ export default function DisputeResolution() {
                         size="sm" 
                         variant="outline"
                         onClick={() => handleVote(dispute.id, 'against')}
+                        disabled={restrictedUser}
                         className="flex-1"
                       >
                         <ThumbsDown className="w-3 h-3 mr-1" />
@@ -333,6 +437,7 @@ export default function DisputeResolution() {
                         size="sm" 
                         variant="outline"
                         onClick={() => handleVote(dispute.id, 'abstain')}
+                        disabled={restrictedUser}
                         className="flex-1"
                       >
                         <Minus className="w-3 h-3 mr-1" />
@@ -356,21 +461,34 @@ export default function DisputeResolution() {
                   </div>
                 )}
 
-                {dispute.status === 'pending' && (
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={() => {
-                      setDisputes(disputes.map(d => 
-                        d.id === dispute.id ? { ...d, status: 'under_review', arbitrator: 'District Authority' } : d
-                      ));
-                      toast.success('Dispute moved to review stage');
-                    }}
-                    className="w-full"
-                  >
-                    <Gavel className="w-3 h-3 mr-1" />
-                    Move to Review
-                  </Button>
+                {['filed', 'pending', 'under_review'].includes(dispute.status) && (user?.role === 'admin' || user?.role === 'arbitrator') && !restrictedUser && (
+                  <div className="flex flex-col gap-2">
+                    {['filed', 'pending'].includes(dispute.status) && (
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={async () => {
+                          try {
+                            await api.patchDisputeStatus(dispute.id, 'under_review');
+                            setDisputes(prev => prev.map(d => d.id === dispute.id ? { ...d, status: 'under_review' as const } : d));
+                            toast.success('Dispute moved to review');
+                          } catch (e) {
+                            toast.error(e instanceof Error ? e.message : 'Failed');
+                          }
+                        }}
+                      >
+                        <Gavel className="w-3 h-3 mr-1" />
+                        Move to Review
+                      </Button>
+                    )}
+                    <ResolveDisputeDialog
+                      disputeId={dispute.id}
+                      onResolved={(r) => {
+                        setDisputes(prev => prev.map(d => d.id === dispute.id ? { ...d, status: 'resolved' as const, resolution: r } : d));
+                        toast.success('Dispute resolved');
+                      }}
+                    />
+                  </div>
                 )}
               </CardContent>
             </Card>

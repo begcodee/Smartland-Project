@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
-import { useAuth } from '@/components/UserAuth';
-import { User } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import type { User } from '@/lib/mockData';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield } from 'lucide-react';
 
@@ -11,9 +11,9 @@ interface RoleBasedAccessProps {
 }
 
 export const RoleBasedAccess = ({ allowedRoles, children, fallback }: RoleBasedAccessProps) => {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
 
-  if (!currentUser) {
+  if (!user) {
     return fallback || (
       <Alert>
         <Shield className="h-4 w-4" />
@@ -24,7 +24,7 @@ export const RoleBasedAccess = ({ allowedRoles, children, fallback }: RoleBasedA
     );
   }
 
-  if (!allowedRoles.includes(currentUser.role)) {
+  if (!allowedRoles.includes(user.role)) {
     return fallback || (
       <Alert>
         <Shield className="h-4 w-4" />
@@ -39,23 +39,23 @@ export const RoleBasedAccess = ({ allowedRoles, children, fallback }: RoleBasedA
 };
 
 export const useRoleAccess = () => {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
 
-  const hasRole = (role: User['role']) => currentUser?.role === role;
-  const hasAnyRole = (roles: User['role'][]) => currentUser ? roles.includes(currentUser.role) : false;
-  const isVerified = () => currentUser?.verificationStatus === 'verified';
+  const hasRole = (role: User['role']) => user?.role === role;
+  const hasAnyRole = (roles: User['role'][]) => user ? roles.includes(user.role) : false;
+  const isVerified = () => user?.verificationStatus === 'verified';
 
   return {
-    currentUser,
+    currentUser: user,
     hasRole,
     hasAnyRole,
     isVerified,
-    canRegisterLand: hasAnyRole(['landowner', 'authority']),
-    canTransferLand: hasAnyRole(['landowner', 'buyer']),
-    canFileDispute: hasAnyRole(['landowner', 'buyer']),
-    canVoteOnDispute: hasAnyRole(['landowner', 'buyer', 'arbitrator', 'authority']),
-    canResolveDispute: hasAnyRole(['arbitrator', 'authority']),
-    canViewContracts: hasAnyRole(['authority', 'arbitrator']),
-    canManageUsers: hasRole('authority')
+    canRegisterLand: hasAnyRole(['seller', 'admin']),
+    canTransferLand: hasAnyRole(['seller', 'buyer']),
+    canFileDispute: hasAnyRole(['seller', 'buyer']),
+    canVoteOnDispute: hasAnyRole(['seller', 'buyer', 'arbitrator', 'admin']),
+    canResolveDispute: hasAnyRole(['arbitrator', 'admin']),
+    canViewContracts: hasAnyRole(['admin', 'arbitrator']),
+    canManageUsers: hasRole('admin'),
   };
 };

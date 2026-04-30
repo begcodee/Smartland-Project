@@ -2,6 +2,7 @@ import express from "express";
 import { authenticate, requireRole } from "../auth.js";
 import { seedIfEmpty, store, safeParcel } from "../store.js";
 import { audit } from "../services/audit.js";
+import { attachProtocolCToParcel } from "../services/sellerProtocolGate.js";
 import {
   polygonBbox,
   bboxArea,
@@ -40,9 +41,27 @@ router.post("/", authenticate, requireRole("seller", "lands_commission", "admin"
     }
   }
 
-  const { title, location, priceGhs, size, boundaryPolygon, areaSqm, areaSqft } = req.body || {};
-  if (!title || !location || !priceGhs) {
-    return res.status(400).json({ error: "Missing title, location, or priceGhs" });
+  const {
+    title,
+    location,
+    priceGhs,
+    price,
+    size,
+    boundaryPolygon,
+    areaSqm,
+    areaSqft,
+    sitePlanOcrText,
+    landDocumentOcrText,
+  } = req.body || {};
+  const locationStr =
+    typeof location === "string"
+      ? location
+      : location && typeof location === "object"
+        ? String(location.address || location.region || "").trim() || JSON.stringify(location)
+        : "";
+  const priceVal = Number(priceGhs ?? price);
+  if (!title || (!locationStr && !location) || !Number.isFinite(priceVal)) {
+    return res.status(400).json({ error: "Missing title, location, or price (priceGhs)" });
   }
 
   // Conflict prevention: compute geo fingerprint + overlap risk (demo uses bbox overlap)
@@ -102,13 +121,15 @@ router.post("/", authenticate, requireRole("seller", "lands_commission", "admin"
   const parcel = {
     id,
     title: String(title),
-    location: String(location),
-    priceGhs: Number(priceGhs),
+    location: locationStr || String(location),
+    priceGhs: priceVal,
     size: size ? String(size) : null,
     areaSqm: typeof areaSqm === "number" ? areaSqm : typeof areaSqft === "number" ? Math.round(areaSqft / 10.7639104167) : null,
     areaSqft: typeof areaSqft === "number" ? areaSqft : typeof areaSqm === "number" ? Math.round(areaSqm * 10.7639104167) : null,
     geoAreaSqm,
     status: "available",
+    registryClearance: "clear",
+    redFlag: null,
     sellerId: req.user.id,
     createdAt: new Date().toISOString(),
     transfers: [],
@@ -118,6 +139,9 @@ router.post("/", authenticate, requireRole("seller", "lands_commission", "admin"
     conflictRisk,
     overlap: overlapReport,
   };
+  const ocrBlob = String(sitePlanOcrText || landDocumentOcrText || "").trim();
+  attachProtocolCToParcel(parcel, ocrBlob);
+
   store.parcels.set(parcel.id, parcel);
   audit(req, "parcel.created", {
     parcelId: parcel.id,
@@ -127,6 +151,22 @@ router.post("/", authenticate, requireRole("seller", "lands_commission", "admin"
   });
   res.status(201).json(safeParcel(parcel));
 });
+
+router.patch(
+  "/:id/clear-red-flag",
+  authenticate,
+  requireRole("admin", "arbitrator"),
+  (req, res) => {
+    seedIfEmpty();
+    const parcel = store.parcels.get(req.params.id);
+    if (!parcel) return res.status(404).json({ error: "Parcel not found" });
+    parcel.registryClearance = "clear";
+    parcel.redFlag = null;
+    if (parcel.status === "disputed") parcel.status = "available";
+    audit(req, "parcel.red_flag_cleared", { parcelId: parcel.id });
+    res.json(safeParcel(parcel));
+  }
+);
 
 export default router;
 

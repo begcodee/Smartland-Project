@@ -38,6 +38,15 @@ export interface VerificationData {
   selfieSource?: 'live_camera' | 'upload';
   requiresManualReview?: boolean;
   niaReferenceId?: string;
+  /** Backend IVS simulation snapshot (Protocols A & B) — persisted for rule-based settlement */
+  smartlandProtocols?: Record<string, unknown>;
+  ghanaCard?: {
+    cardNumber: string;
+    fullName: string;
+    frontCardImage?: string;
+    backCardImage?: string;
+    faceImage?: string;
+  };
 }
 
 const CARD_NAMES: Record<string, string> = {
@@ -71,6 +80,9 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [pendingSubmitPayload, setPendingSubmitPayload] = useState<VerificationData | null>(null);
+  /** Latest Protocol A/B snapshot from `/verify/ghana-card` — merged into PATCH `/users/me`. */
+  const [smartlandProtocols, setSmartlandProtocols] = useState<Record<string, unknown> | null>(null);
+  const [securityReportLines, setSecurityReportLines] = useState<string[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -124,6 +136,19 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
           setFaceRecognitionStep(null);
           toast.error(res.message || 'Verification check failed');
           return;
+        }
+
+        setSmartlandProtocols(res.smartlandProtocols ?? null);
+        setSecurityReportLines(Array.isArray(res.securityReport) ? res.securityReport : []);
+
+        if (res.flaggedForArbitrator || res.biometricMismatch) {
+          toast.error('Verification flagged', {
+            description:
+              res.biometricMismatch
+                ? 'Biometric binding below threshold — case may be escalated to an arbitrator.'
+                : res.message,
+            duration: 9000
+          });
         }
 
         setFaceRecognitionStep('done');
@@ -260,7 +285,15 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
         livenessPassed: faceCaptureMethod === 'live_camera',
         selfieSource: faceCaptureMethod ?? undefined,
         requiresManualReview,
-        niaReferenceId: undefined
+        niaReferenceId: undefined,
+        smartlandProtocols: smartlandProtocols ?? undefined,
+        ghanaCard: {
+          cardNumber: normalized,
+          fullName: fullName.trim(),
+          frontCardImage: frontCard,
+          backCardImage: backCard,
+          faceImage
+        }
       };
 
       await api.saveIdVerification(verificationData as unknown as Record<string, unknown>);
@@ -296,6 +329,25 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
               <AlertDescription className="text-foreground">
                 Upload or capture <strong>front</strong> and <strong>back</strong> of your {cardName}. For Ghana, the card number on the front must match{' '}
                 <span className="font-mono text-sm">GHA-XXXXXXXXX-X</span>.
+              </AlertDescription>
+            </Alert>
+
+            <Alert className="border-primary/30 bg-primary/5">
+              <Scan className="h-4 w-4 text-primary" />
+              <AlertTitle className="text-foreground">Mock NIA IVS (SmartLand)</AlertTitle>
+              <AlertDescription className="text-foreground text-sm space-y-2">
+                <p>
+                  Protocol A simulates L.I. 2111 IVS: your PIN must match the Ghana Card pattern{' '}
+                  <span className="font-mono">GHA-XXXXXXXXX-X</span> and appear on the{' '}
+                  <strong>local mock NIA ledger</strong>. Example demo rows:{' '}
+                  <span className="font-mono text-xs">GHA-100100100-1</span> (John Doe),{' '}
+                  <span className="font-mono text-xs">GHA-200200200-2</span> (Akosua Frimpong),{' '}
+                  <span className="font-mono text-xs">GHA-482951734-1</span> (Ama Mensah).
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  Protocol B applies a 1:1 biometric binding score against your card portrait (simulated). Set backend{' '}
+                  <span className="font-mono">MOCK_BIOMETRIC_MODE=strict</span> to force sub-threshold scores for adversarial testing.
+                </p>
               </AlertDescription>
             </Alert>
 
@@ -542,6 +594,22 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
                       {requiresManualReview && (
                         <span className="block mt-2 font-medium">Your account will remain limited until staff completes this review.</span>
                       )}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {faceScreeningDone && securityReportLines.length > 0 && (
+                  <Alert className="border-border bg-muted/40 text-left">
+                    <Shield className="h-4 w-4 text-primary" />
+                    <AlertTitle className="text-foreground text-sm">Security report (protocol prescreen)</AlertTitle>
+                    <AlertDescription className="text-foreground">
+                      <ul className="mt-2 list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                        {securityReportLines.map((line, i) => (
+                          <li key={i} className="font-mono text-[11px] text-foreground">
+                            {line}
+                          </li>
+                        ))}
+                      </ul>
                     </AlertDescription>
                   </Alert>
                 )}

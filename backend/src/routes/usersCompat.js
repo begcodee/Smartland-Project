@@ -4,6 +4,8 @@ import { seedIfEmpty, store, publicUser } from "../store.js";
 import { z } from "zod";
 import { computeRiskScore } from "../services/risk.js";
 import { audit } from "../services/audit.js";
+import { createNotification } from "./notifications.js";
+import { getSmartlandProtocols } from "../services/sellerProtocolGate.js";
 
 const router = express.Router();
 
@@ -108,6 +110,24 @@ router.patch("/me", authenticate, (req, res) => {
       flag: me.idVerificationRiskFlag || null,
       documentSizeFlags: me.documentSizeFlags || [],
     });
+
+    const sp = getSmartlandProtocols(me);
+    const pb = sp?.protocolB;
+    if (pb && pb.skipped !== true && pb.passed === false && !me.biometricArbitratorNotified) {
+      me.biometricArbitratorNotified = true;
+      for (const u of Array.from(store.users.values())) {
+        if (u.role !== "arbitrator") continue;
+        createNotification({
+          userId: u.id,
+          type: "red_flag",
+          category: "arbitration",
+          title: "Identity theft review — biometric mismatch",
+          message: `${me.name} (${me.email}) failed Protocol B (similarity ${pb.similarity ?? "?"} < threshold ${pb.threshold ?? "?"}).`,
+          actionUrl: "/arbitrator",
+        });
+      }
+      audit(req, "protocol.b.arbitrator_escalation", { userId: me.id, similarity: pb.similarity });
+    }
   }
 
   res.json({ success: true, user: publicUser(me) });
@@ -140,11 +160,35 @@ router.patch("/:id/verify", authenticate, requireRole("lands_commission", "admin
   if (action === "reject") {
     target.verified = false;
     target.rejectionReason = parsed.data.rejectionReason || "Rejected by Lands Commission";
+    createNotification({
+      userId: target.id,
+      type: "error",
+      category: "verification",
+      title: "Lands Commission verification rejected",
+      message: `Your account verification was rejected by the Lands Commission. Reason: ${target.rejectionReason}`,
+      actionUrl: "/",
+    });
     audit(req, "lands.verify_user.rejected", { targetUserId: target.id, reason: target.rejectionReason });
     return res.json({ success: true, user: publicUser(target) });
   }
 
   target.verified = true;
+  createNotification({
+    userId: target.id,
+    type: "success",
+    category: "verification",
+    title: "Lands Commission verification approved",
+    message:
+      "Your account has been approved by the Lands Commission. You can now access full SmartLand features.",
+    actionUrl:
+      target.role === "seller"
+        ? "/seller"
+        : target.role === "buyer"
+          ? "/buyer"
+          : target.role === "arbitrator"
+            ? "/arbitrator"
+            : "/",
+  });
   audit(req, "lands.verify_user.approved", { targetUserId: target.id });
   res.json({ success: true, user: publicUser(target) });
 });

@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MapPin, FileText, Plus, Search, Eye, Camera, Zap, Hexagon, Shield, Image as ImageIcon, Gavel, Lock, Smartphone, Building2, CreditCard } from 'lucide-react';
+import { MapPin, FileText, Plus, Search, Eye, Camera, Zap, Hexagon, Shield, Image as ImageIcon, Gavel, Lock, Smartphone, Building2, CreditCard, AlertTriangle } from 'lucide-react';
 import { mockLandParcels, mockDisputes, formatCurrency } from '@/lib/mockData';
 import { LandParcel, User } from '@/lib/mockData';
 import { api } from '@/lib/api';
@@ -62,7 +62,9 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
     price: '',
     type: 'residential' as LandParcel['type'],
     images: [] as LandImage[],
-    documents: [] as ScannedDocument[]
+    documents: [] as ScannedDocument[],
+    /** Protocol C — simulated OCR extract (site plan / indenture) */
+    sitePlanOcrText: ''
   });
 
   const restrictedUser = isUserRestricted(currentUser);
@@ -73,6 +75,7 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
       !restrictedUser &&
       (currentUser?.role === 'buyer' || currentUser?.role === 'admin') &&
       selectedParcel.status === 'available' &&
+      selectedParcel.registryClearance !== 'flagged' &&
       currentUser?.id &&
       selectedParcel.ownerId !== currentUser.id
   );
@@ -120,7 +123,17 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
       }
       toast.error('No checkout URL returned');
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not start Paystack checkout');
+      const err = e as Error & { redFlag?: boolean; conflict?: { flags?: string[] } };
+      if (err.redFlag) {
+        toast.error('Red flag — automated settlement paused', {
+          description:
+            err.message ||
+            'The registrar will not anchor this sale on-chain until NIA, clearance, and ownership checks pass.',
+          duration: 8000
+        });
+      } else {
+        toast.error(err.message || 'Could not start Paystack checkout');
+      }
     } finally {
       setPayStarting(false);
     }
@@ -135,8 +148,9 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
           api.getDisputes().catch(() => null)
         ]);
         if (!ok) return;
-        if (parcelRes?.success && Array.isArray(parcelRes.parcels)) {
-          setParcels(parcelRes.parcels.map((p: object) => mapApiParcelToLandParcel(p as Parameters<typeof mapApiParcelToLandParcel>[0])));
+        const rawParcels = parcelRes?.parcels ?? (Array.isArray(parcelRes) ? parcelRes : []);
+        if (parcelRes?.success && Array.isArray(rawParcels)) {
+          setParcels(rawParcels.map((p: object) => mapApiParcelToLandParcel(p as Parameters<typeof mapApiParcelToLandParcel>[0])));
         }
         if (disputeRes?.success && Array.isArray(disputeRes.disputes)) {
           setDisputes(disputeRes.disputes.map((d: { id: string; landParcelId: string; plaintiff?: { name?: string }; defendant?: { name?: string }; description?: string; status?: string; filedDate?: string }) => ({
@@ -186,7 +200,8 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
       price: '',
       type: 'residential' as LandParcel['type'],
       images: [],
-      documents: []
+      documents: [],
+      sitePlanOcrText: ''
     });
     setShowImageUpload(false);
   };
@@ -228,7 +243,8 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
       const payload = {
         title: newParcel.title,
         description: newParcel.description || '',
-        location: {
+        location: `${newParcel.location.address}, ${newParcel.location.region}`.trim(),
+        locationDetail: {
           address: newParcel.location.address,
           latitude: coords.lat,
           longitude: coords.lng,
@@ -237,7 +253,9 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
         areaSqm: Math.round(parsedNewArea.sqm),
         areaSqft: Math.round(parsedNewArea.sqft),
         price: parseInt(newParcel.price) || 0,
+        priceGhs: parseInt(newParcel.price) || 0,
         type: newParcel.type,
+        sitePlanOcrText: newParcel.sitePlanOcrText.trim(),
         documents: newParcel.documents.map(d => ({
           name: d.name,
           type: d.type || 'PDF',
@@ -515,6 +533,22 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                       setNewParcel({ ...newParcel, documents: docs })
                     }
                   />
+                  <div className="space-y-2 pt-2 border-t border-accent/30">
+                    <Label htmlFor="sitePlanOcr" className="text-foreground font-medium">
+                      Simulated site-plan OCR (Protocol C)
+                    </Label>
+                    <Textarea
+                      id="sitePlanOcr"
+                      placeholder='Paste text as if from OCR. Must include STAMPED, LANDS COMMISSION, and a licence such as "Licensed Surveyor #LS-GH-4432".'
+                      value={newParcel.sitePlanOcrText}
+                      onChange={(e) => setNewParcel({ ...newParcel, sitePlanOcrText: e.target.value })}
+                      rows={4}
+                      className="border-input font-mono text-xs"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Leaving this empty skips Protocol C at registration. Invalid text flags the parcel as <strong>Unverified Document</strong>.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Image Upload Section */}
@@ -646,9 +680,15 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                <Badge className={`absolute top-3 right-3 ${getStatusColor(parcel.status)}`}>
-                  {parcel.status}
-                </Badge>
+                <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
+                  <Badge className={getStatusColor(parcel.status)}>{parcel.status}</Badge>
+                  {parcel.registryClearance === 'flagged' && (
+                    <Badge variant="destructive" className="gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      Red flag
+                    </Badge>
+                  )}
+                </div>
                 {parcel.images.length > 1 && (
                   <Badge className="absolute bottom-3 right-3 bg-black/50 text-white border-0">
                     <ImageIcon className="w-3 h-3 mr-1" />
@@ -667,9 +707,15 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                   </CardTitle>
                 </div>
                 {!parcel.images?.length && (
-                  <Badge className={getStatusColor(parcel.status)}>
-                    {parcel.status}
-                  </Badge>
+                  <div className="flex flex-col gap-1 items-end">
+                    <Badge className={getStatusColor(parcel.status)}>{parcel.status}</Badge>
+                    {parcel.registryClearance === 'flagged' && (
+                      <Badge variant="destructive" className="text-xs gap-1">
+                        <AlertTriangle className="h-3 w-3 shrink-0" />
+                        Flagged
+                      </Badge>
+                    )}
+                  </div>
                 )}
               </div>
               <CardDescription className="flex items-center gap-1 text-muted-foreground">
@@ -807,6 +853,16 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                           </div>
                         )}
 
+                        {selectedParcel.registryClearance === 'flagged' && (
+                          <Alert variant="destructive" className="border-destructive/60">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>
+                              <strong>Red flag active.</strong> Automated settlement (payment completion + on-chain anchor by the
+                              registrar) is disabled until an arbitrator clears the registry. Reason:{' '}
+                              {selectedParcel.redFlag?.message ?? 'Review required.'}
+                            </AlertDescription>
+                          </Alert>
+                        )}
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <Label className="text-foreground font-medium">Owner</Label>
@@ -814,9 +870,18 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                           </div>
                           <div>
                             <Label className="text-foreground font-medium">Status</Label>
-                            <Badge className={getStatusColor(selectedParcel.status)}>
-                              {selectedParcel.status}
-                            </Badge>
+                            <div className="flex flex-wrap gap-2 items-center">
+                              <Badge className={getStatusColor(selectedParcel.status)}>
+                                {selectedParcel.status}
+                              </Badge>
+                              {selectedParcel.registryClearance === 'flagged' ? (
+                                <Badge variant="destructive">Not clear — arbitration</Badge>
+                              ) : (
+                                <Badge variant="outline" className="border-green-600/50 text-green-800 dark:text-green-400">
+                                  Clear
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                           <div>
                             <Label className="text-foreground font-medium">Area</Label>
@@ -854,6 +919,16 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                           </div>
                         </div>
 
+                        {!canBuySelectedParcel &&
+                          selectedParcel.registryClearance === 'flagged' &&
+                          (currentUser?.role === 'buyer' || currentUser?.role === 'admin') &&
+                          selectedParcel.ownerId !== currentUser.id && (
+                            <p className="text-sm text-muted-foreground">
+                              Checkout is unavailable while this parcel carries a red flag. Use the arbitrator workflow to
+                              investigate and clear the registry record.
+                            </p>
+                          )}
+
                         {canBuySelectedParcel && (
                           <div className="rounded-lg border border-primary/25 bg-primary/5 p-4 space-y-3">
                             <Label className="text-foreground font-medium flex items-center gap-2">
@@ -861,7 +936,9 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
                               Purchase
                             </Label>
                             <p className="text-xs text-muted-foreground">
-                              Pay in Ghana Cedis (GHS) via Mobile Money or bank.
+                              Pay in Ghana Cedis (GHS) via Mobile Money or bank. Settlement runs automatically only when the
+                              parcel is <strong>clear</strong>, the seller is NIA-verified, and the seller matches the registered
+                              owner.
                             </p>
                            
                             <RadioGroup

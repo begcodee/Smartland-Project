@@ -85,8 +85,18 @@ export interface LandParcel {
   };
   area: number;
   price: number; // Now in Ghana Cedis
-  status: 'available' | 'pending' | 'sold' | 'disputed';
+  status: 'available' | 'pending' | 'sold' | 'disputed' | 'locked_for_transaction';
   ownerId: string;
+  /** Red-flag model: automated settlement only when `clear`. */
+  registryClearance?: 'clear' | 'flagged';
+  redFlag?: {
+    code: string;
+    message?: string;
+    raisedAt?: string;
+    listedSellerId?: string;
+    recordedOwnerId?: string;
+    buyerId?: string;
+  } | null;
   documents: Array<{
     id: string;
     name: string;

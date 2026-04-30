@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SmartLand Registry</string>
+    <string name="title_activity_main">SmartLand Registry</string>
+    <string name="package_name">gh.smartland.prototype</string>
+    <string name="custom_url_scheme">gh.smartland.prototype</string>
+</resources>

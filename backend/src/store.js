@@ -21,11 +21,12 @@ export const store = {
   employeeAttempts: [], // array audit log
   auditLogs: [],
   notifications: [],
+  /** Land / registry policy records (admin-managed) */
+  laws: [],
 };
 
 export function seedIfEmpty() {
-  if (store.users.size > 0) return;
-
+  if (store.users.size === 0) {
   const demoPasswordHash = bcrypt.hashSync("Password123!", 10);
 
   const admin = {
@@ -164,6 +165,8 @@ export function seedIfEmpty() {
     priceGhs: 50000,
     size: "0.25 acre",
     status: "available",
+    registryClearance: "clear",
+    redFlag: null,
     sellerId: seller.id,
     createdAt: nowIso(),
     transfers: [],
@@ -176,6 +179,8 @@ export function seedIfEmpty() {
     priceGhs: 25000,
     size: "0.18 acre",
     status: "available",
+    registryClearance: "clear",
+    redFlag: null,
     sellerId: seller.id,
     createdAt: nowIso(),
     transfers: [],
@@ -203,6 +208,37 @@ export function seedIfEmpty() {
     ghanaCardNumber: "GHA-615204987-3",
     active: false,
   });
+  }
+
+  if (!store.laws.length) {
+    const t = nowIso();
+    store.laws.push(
+      {
+        id: id("law"),
+        code: "REG-GLC-001",
+        title: "Parcel registration — documentary evidence",
+        summary: "Minimum documents required before a parcel may be listed on SmartLand.",
+        body: "Sellers must provide a valid site plan or survey, evidence of identity matching NIA records, and declaration of encumbrances. The Lands Commission may request further evidence where overlap or chain gaps are flagged.",
+        category: "registration",
+        effectiveFrom: "2024-01-01",
+        status: "active",
+        createdAt: t,
+        updatedAt: t,
+      },
+      {
+        id: id("law"),
+        code: "REG-GLC-002",
+        title: "Transfer and payment settlement",
+        summary: "Rules for escrow-backed transfers between verified parties.",
+        body: "Transfers require verified buyer and seller, cleared conflict checks, and completion of statutory fees where applicable. Disputed parcels cannot complete transfer until dispute status is resolved or withdrawn.",
+        category: "transfer",
+        effectiveFrom: "2024-06-01",
+        status: "active",
+        createdAt: t,
+        updatedAt: t,
+      }
+    );
+  }
 }
 
 export function publicUser(user) {

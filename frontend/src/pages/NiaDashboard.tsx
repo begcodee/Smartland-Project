@@ -19,15 +19,16 @@ type NiaUser = {
   phoneNumber: string;
   role: string;
   createdAt: string;
-  idVerification?: string | null;
+  idVerification?: string | Record<string, unknown> | null;
   niaStatus?: string;
   niaReferenceId?: string | null;
 };
 
-function parseIdVerification(raw: string | null | undefined) {
-  if (!raw) return null;
+function parseIdVerification(raw: unknown) {
+  if (raw == null) return null;
+  if (typeof raw === 'object') return raw as Record<string, unknown>;
   try {
-    return JSON.parse(raw) as { cardNumber?: string; fullName?: string; selfieSource?: string };
+    return JSON.parse(String(raw)) as Record<string, unknown>;
   } catch {
     return null;
   }
@@ -126,7 +127,18 @@ export default function NiaDashboard() {
                 ) : (
                   <div className="space-y-3">
                     {pending.map((u) => {
-                      const parsed = parseIdVerification(u.idVerification ?? null);
+                      const parsed = parseIdVerification(u.idVerification);
+                      const gh = (parsed?.ghanaCard as Record<string, unknown> | undefined) ?? parsed;
+                      const cardNumber =
+                        (gh?.cardNumber as string) ||
+                        (parsed?.cardNumber as string | undefined);
+                      const fullNameOnCard =
+                        (gh?.fullName as string) ||
+                        (parsed?.fullName as string | undefined);
+                      const selfieSource = parsed?.selfieSource as string | undefined;
+                      const sp = parsed?.smartlandProtocols as Record<string, unknown> | undefined;
+                      const pa = sp?.protocolA as { passed?: boolean } | undefined;
+                      const pb = sp?.protocolB as { passed?: boolean | null; skipped?: boolean; similarity?: number } | undefined;
                       return (
                         <div key={u.id} className="rounded-xl border border-border p-4 bg-card space-y-3">
                           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -136,13 +148,21 @@ export default function NiaDashboard() {
                               <p className="text-xs text-muted-foreground">Role: {u.role}</p>
                             </div>
                             <Badge variant="outline" className="font-mono text-xs">
-                              {parsed?.cardNumber ?? 'No card number'}
+                              {cardNumber ?? 'No card number'}
+                            </Badge>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Badge variant={pa?.passed ? 'default' : 'secondary'} className="text-xs">
+                              Protocol A {pa?.passed ? 'OK' : '—'}
+                            </Badge>
+                            <Badge variant={pb?.skipped ? 'outline' : pb?.passed ? 'default' : 'destructive'} className="text-xs">
+                              Protocol B {pb?.skipped ? 'manual' : pb?.passed ? `${pb.similarity ?? 'OK'}` : 'fail'}
                             </Badge>
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            Name on card: <span className="text-foreground font-medium">{parsed?.fullName ?? '—'}</span>
-                            {parsed?.selfieSource ? (
-                              <span className="ml-2">Selfie: <span className="text-foreground font-medium">{parsed.selfieSource}</span></span>
+                            Name on card: <span className="text-foreground font-medium">{fullNameOnCard ?? '—'}</span>
+                            {selfieSource ? (
+                              <span className="ml-2">Selfie: <span className="text-foreground font-medium">{selfieSource}</span></span>
                             ) : null}
                           </div>
                           <div className="flex gap-2">

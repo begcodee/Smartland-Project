@@ -4,10 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, CheckCircle2, XCircle, Wallet, Star } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Wallet, Star, AlertTriangle } from 'lucide-react';
 import { api } from '@/lib/api';
 
-type UiState = 'loading' | 'success' | 'error' | 'need_login';
+type UiState = 'loading' | 'success' | 'error' | 'need_login' | 'settlement_blocked';
 
 export default function PaymentCallback() {
   const [searchParams] = useSearchParams();
@@ -49,6 +49,12 @@ export default function PaymentCallback() {
             setTransfer({ id: res.transfer.id, sellerId: res.transfer.sellerId, buyerId: res.transfer.buyerId });
             setShowRating(true);
           }
+        } else if (res.status === 'success_no_transfer') {
+          setState('settlement_blocked');
+          setMessage(
+            res.message ??
+              'Payment was received but automated settlement did not run — a red flag or conflict blocked the registrar and on-chain anchor. Contact support or wait for arbitrator review.'
+          );
         } else {
           setState('error');
           setMessage(
@@ -113,6 +119,13 @@ export default function PaymentCallback() {
             </Alert>
           )}
 
+          {state === 'settlement_blocked' && (
+            <Alert className="border-amber-300 bg-amber-50 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100 dark:border-amber-800">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{message}</AlertDescription>
+            </Alert>
+          )}
+
           {(state === 'error' || state === 'need_login') && (
             <Alert variant="destructive">
               <XCircle className="h-4 w-4" />
@@ -120,7 +133,7 @@ export default function PaymentCallback() {
             </Alert>
           )}
 
-          {state === 'success' && (
+          {(state === 'success' || state === 'settlement_blocked') && (
             <Button className="w-full" onClick={() => navigate('/buyer')}>
               Back to buyer dashboard
             </Button>

@@ -2,7 +2,7 @@
  * SmartLand API client — connects frontend to backend
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+import { API_BASE } from './apiBase';
 
 function getToken(): string | null {
   return localStorage.getItem('smartland_token');
@@ -14,6 +14,32 @@ function headers(includeAuth = true): Record<string, string> {
   if (includeAuth && token) h.Authorization = `Bearer ${token}`;
   return h;
 }
+
+export type LawCategory = 'registration' | 'transfer' | 'dispute' | 'environmental' | 'general';
+export type LawStatus = 'draft' | 'active';
+
+export type LawRecord = {
+  id: string;
+  code: string;
+  title: string;
+  summary: string;
+  body: string;
+  category: LawCategory;
+  effectiveFrom: string;
+  status: LawStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LawPayload = {
+  code?: string;
+  title: string;
+  summary?: string;
+  body?: string;
+  category?: LawCategory;
+  effectiveFrom?: string;
+  status?: LawStatus;
+};
 
 export const api = {
   async health() {
@@ -138,7 +164,28 @@ export const api = {
       pendingManualReview?: boolean;
       preScreeningPassed?: boolean;
       referenceId?: string;
+      flaggedForArbitrator?: boolean;
+      biometricMismatch?: boolean;
+      thesisNotes?: Record<string, string>;
+      protocolA?: { passed?: boolean; flags?: string[]; thesisNote?: string };
+      protocolB?: {
+        passed?: boolean | null;
+        skipped?: boolean;
+        similarity?: number | null;
+        threshold?: number;
+        flags?: string[];
+        thesisNote?: string;
+      };
+      securityReport?: string[];
+      smartlandProtocols?: Record<string, unknown>;
     };
+  },
+
+  async getVerificationDashboardRules() {
+    const r = await fetch(`${API_BASE}/verify/dashboard-rules`, { headers: headers(false) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed');
+    return data as { success: boolean; rules: Record<string, unknown>; thesis?: string };
   },
 
   /** Persist Ghana Card submission; user remains pending until admin approves */
@@ -158,6 +205,19 @@ export const api = {
     const r = await fetch(`${API_BASE}/parcels${q}`, { headers: headers() });
     const data = await r.json();
     if (!r.ok) throw new Error(data.message || 'Failed');
+    const parcels = Array.isArray(data) ? data : Array.isArray(data?.parcels) ? data.parcels : [];
+    return { success: true as const, parcels };
+  },
+
+  /** Arbitrator/admin: restore parcel to **clear** after investigation (enables automated settlement again). */
+  async clearParcelRedFlag(parcelId: string) {
+    const r = await fetch(`${API_BASE}/parcels/${encodeURIComponent(parcelId)}/clear-red-flag`, {
+      method: 'PATCH',
+      headers: headers(),
+      body: JSON.stringify({})
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed to clear flag');
     return data;
   },
 
@@ -214,7 +274,15 @@ export const api = {
       body: JSON.stringify(payload)
     });
     const data = await r.json();
-    if (!r.ok) throw new Error(data.message || 'Failed to start payment');
+    if (!r.ok) {
+      const err = new Error(data.message || 'Failed to start payment') as Error & {
+        redFlag?: boolean;
+        conflict?: unknown;
+      };
+      err.redFlag = data.redFlag === true;
+      err.conflict = data.conflict;
+      throw err;
+    }
     return data as {
       success: boolean;
       authorizationUrl: string;
@@ -235,6 +303,10 @@ export const api = {
     return data as {
       success: boolean;
       status: string;
+      message?: string;
+      redFlag?: boolean;
+      blocked?: boolean;
+      evaluation?: unknown;
       payment?: unknown;
       transfer?: {
         id: string;
@@ -486,5 +558,44 @@ export const api = {
     const data = await r.json();
     if (!r.ok) throw new Error(data.message || 'Failed');
     return data;
+  },
+
+  async getLaws() {
+    const r = await fetch(`${API_BASE}/laws`, { headers: headers(false) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed to load laws');
+    return data as { laws: LawRecord[] };
+  },
+
+  async createLaw(payload: LawPayload) {
+    const r = await fetch(`${API_BASE}/laws`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed to create law');
+    return data as { law: LawRecord };
+  },
+
+  async updateLaw(id: string, payload: Partial<LawPayload>) {
+    const r = await fetch(`${API_BASE}/laws/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: headers(),
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed to update law');
+    return data as { law: LawRecord };
+  },
+
+  async deleteLaw(id: string) {
+    const r = await fetch(`${API_BASE}/laws/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: headers()
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed to delete law');
+    return data as { ok: boolean };
   }
 };

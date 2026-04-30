@@ -5,6 +5,8 @@ import { viteSourceLocator } from "@metagptx/vite-plugin-source-locator";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // Relative asset paths required for Capacitor (file/WebView). Use: vite build --mode capacitor
+  base: mode === "capacitor" ? "./" : "/",
   plugins: [
     viteSourceLocator({
       prefix: "mgx",

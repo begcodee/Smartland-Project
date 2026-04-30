@@ -1,4 +1,8 @@
 import { polygonOverlapRatio } from "./geo.js";
+import {
+  sellerProtocolsAllowTransaction,
+  parcelDocumentProtocolOk,
+} from "./sellerProtocolGate.js";
 
 function riskLevelFromScore(score) {
   if (score >= 70) return "HIGH";
@@ -6,10 +10,11 @@ function riskLevelFromScore(score) {
   return "LOW";
 }
 
+/** Severe risk → hard stop (no automated settlement). */
 function decisionFromScore(score) {
   if (score >= 70) return "BLOCK";
-  if (score >= 40) return "REVIEW";
-  return "ALLOW";
+  if (score >= 40) return "RED_FLAG";
+  return "AUTO";
 }
 
 function weights() {
@@ -40,8 +45,10 @@ function areaThresholds() {
 }
 
 /**
- * Land conflict detection engine (preventive layer).
- * Evaluates a proposed transaction BEFORE it is accepted.
+ * Land conflict detection engine — **Red Flag model**:
+ * - `AUTO`: fiat + registrar anchoring may proceed (smart-contract path).
+ * - `RED_FLAG`: automation stops; arbitrator / manual review (criteria failed or elevated risk).
+ * - `BLOCK`: severe conflict; do not proceed.
  */
 export class LandConflictEngine {
   constructor(store) {
@@ -85,11 +92,15 @@ export class LandConflictEngine {
     return false;
   }
 
-  async verifyIdentity(userId) {
+  /** Criterion 1 — Seller identity via NIA (SSI): must be NIA-verified. */
+  sellerNiaVerified(userId) {
     const u = this.store.users.get(userId);
     if (!u) return false;
-    // Authority-grade requirement: NIA verified AND Lands Commission approved.
-    return u.niaStatus === "verified" && u.verified === true;
+    return u.niaStatus === "verified";
+  }
+
+  async verifyIdentity(userId) {
+    return this.sellerNiaVerified(userId);
   }
 
   async evaluateTransaction(tx) {
@@ -108,6 +119,11 @@ export class LandConflictEngine {
         flags,
         decision: "BLOCK",
       };
+    }
+
+    // Criterion 2 — Parcel must be in **clear** registry status for automated settlement.
+    if (parcel.registryClearance === "flagged") {
+      flags.push("REGISTRY_NOT_CLEAR");
     }
 
     // MODULE B — DOUBLE SALE DETECTOR
@@ -139,7 +155,7 @@ export class LandConflictEngine {
       riskScore += W.TITLE_CHAIN_GAP;
     }
 
-    // MODULE E — IDENTITY AUTHORITY CHECK + ownership match
+    // MODULE E — Criterion 3 (ownership) + Criterion 1 (NIA / SSI)
     const currentOwner = this.currentOwnerId(parcel);
     if (currentOwner !== tx.seller_id) {
       flags.push("SELLER_NOT_REGISTERED_OWNER");
@@ -148,8 +164,41 @@ export class LandConflictEngine {
 
     const identityValid = await this.verifyIdentity(tx.seller_id);
     if (!identityValid) {
-      flags.push("IDENTITY_NOT_VERIFIED");
+      flags.push("NIA_IDENTITY_NOT_VERIFIED");
       riskScore += W.IDENTITY_NOT_VERIFIED;
+    }
+
+    // MODULE G — Mock NIA / Lands verification protocols (dashboard rule enforcement)
+    const sellerUser = this.store.users.get(tx.seller_id);
+    if (sellerUser) {
+      const sg = sellerProtocolsAllowTransaction(sellerUser);
+      if (!sg.ok) {
+        if (sg.reasons.includes("PROTOCOL_A_FAILED")) {
+          flags.push("PROTOCOL_A_FAILED");
+          riskScore += 50;
+        }
+        if (sg.reasons.includes("PROTOCOL_B_BIOMETRIC_FAILED")) {
+          flags.push("BIOMETRIC_BINDING_FAILED");
+          riskScore += 55;
+        }
+        if (sg.reasons.includes("PROTOCOL_B_PENDING_MANUAL_NIA")) {
+          flags.push("PROTOCOL_B_PENDING_MANUAL_NIA");
+          riskScore += 42;
+        }
+        if (sg.reasons.includes("PROTOCOL_SNAPSHOT_REQUIRED")) {
+          flags.push("PROTOCOL_SNAPSHOT_REQUIRED");
+          riskScore += 38;
+        }
+        if (sg.reasons.includes("NIA_NOT_VERIFIED") && !flags.includes("NIA_IDENTITY_NOT_VERIFIED")) {
+          flags.push("NIA_NOT_VERIFIED");
+          riskScore += W.IDENTITY_NOT_VERIFIED;
+        }
+      }
+    }
+
+    if (!parcelDocumentProtocolOk(parcel)) {
+      flags.push("LAND_DOCUMENT_UNVERIFIED");
+      riskScore += 50;
     }
 
     // MODULE F — AREA CONSISTENCY CHECK (tolerance + scoring; do not strict-reject)
@@ -177,9 +226,35 @@ export class LandConflictEngine {
     addVarianceFlag("DECLARED_GEO_MISMATCH", calculateVariance(declaredSqm, geoSqm), W.DECLARED_GEO_MISMATCH);
 
     const risk_level = riskLevelFromScore(riskScore);
-    const decision = decisionFromScore(riskScore);
+    let decision = decisionFromScore(riskScore);
 
-    return { risk_score: riskScore, risk_level, flags, decision };
+    // Red-flag pillars: stop automated registrar / chain settlement (arbitrator queue).
+    const pillarRedFlag =
+      flags.includes("SELLER_NOT_REGISTERED_OWNER") ||
+      flags.includes("REGISTRY_NOT_CLEAR") ||
+      flags.includes("NIA_IDENTITY_NOT_VERIFIED") ||
+      flags.includes("PROTOCOL_A_FAILED") ||
+      flags.includes("BIOMETRIC_BINDING_FAILED") ||
+      flags.includes("LAND_DOCUMENT_UNVERIFIED") ||
+      flags.includes("PROTOCOL_B_PENDING_MANUAL_NIA") ||
+      flags.includes("PROTOCOL_SNAPSHOT_REQUIRED");
+
+    if (riskScore >= 70) {
+      decision = "BLOCK";
+    } else if (pillarRedFlag || decision === "RED_FLAG") {
+      decision = "RED_FLAG";
+    } else {
+      decision = "AUTO";
+    }
+
+    return {
+      risk_score: riskScore,
+      risk_level,
+      flags,
+      decision,
+      recorded_owner_id: this.currentOwnerId(parcel),
+      listed_seller_id: tx.seller_id,
+    };
   }
 }
 

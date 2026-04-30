@@ -59,6 +59,19 @@ router.post("/users/:id/decision", authenticate, requireRole("nia"), (req, res) 
     }
   }
 
+  // Notify the applicant.
+  createNotification({
+    userId: target.id,
+    type: decision === "verified" ? "success" : "error",
+    category: "verification",
+    title: decision === "verified" ? "NIA verification approved" : "NIA verification rejected",
+    message:
+      decision === "verified"
+        ? "Your Ghana Card verification has been approved by NIA. Next: Lands Commission will review and approve your account."
+        : "Your Ghana Card verification was rejected by NIA. Please resubmit with correct details.",
+    actionUrl: decision === "verified" ? "/admin" : "/",
+  });
+
   audit(req, "nia.user.decision", { targetUserId: target.id, decision });
   res.json({ success: true, user: publicUser(target) });
 });

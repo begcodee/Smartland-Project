@@ -1,15 +1,20 @@
 import express from "express";
 import { z } from "zod";
 import {
-  isValidGhanaCardFormat,
-  normalizeGhanaCardNumber,
-  isObviouslyFakeGhanaCard,
-  validateFullNameOnCard,
-} from "../utils/ghanaCard.js";
+  runProtocolA,
+  runProtocolB,
+  buildSecurityReport,
+  THESIS,
+} from "../services/smartlandVerificationProtocols.js";
 import { audit } from "../services/audit.js";
+import { DASHBOARD_RULES } from "../services/dashboardRules.js";
 
 const router = express.Router();
 
+/**
+ * Ghana Card IVS simulation — Protocol A (format + mock ledger) + Protocol B (biometric binding).
+ * Thesis framing returned in payload for documentation / UI.
+ */
 router.post("/ghana-card", (req, res) => {
   const parsed = z
     .object({
@@ -26,62 +31,71 @@ router.post("/ghana-card", (req, res) => {
     return res.status(400).json({ success: false, message: "Invalid payload" });
   }
 
-  const cardNumber = normalizeGhanaCardNumber(parsed.data.cardNumber);
-  if (!isValidGhanaCardFormat(cardNumber)) {
-    audit(req, "verify.ghana_card.prescreen", { ok: false, reason: "format_invalid" });
-    return res.status(200).json({
-      success: true,
-      verified: false,
-      preScreeningPassed: false,
-      message: "Invalid Ghana Card number format",
-    });
-  }
-
-  if (isObviouslyFakeGhanaCard(cardNumber)) {
-    audit(req, "verify.ghana_card.prescreen", { ok: false, reason: "obviously_fake" });
-    return res.status(200).json({
-      success: true,
-      verified: false,
-      preScreeningPassed: false,
-      message: "Ghana Card number failed structural checks",
-    });
-  }
-
-  if (!validateFullNameOnCard(parsed.data.fullName)) {
-    audit(req, "verify.ghana_card.prescreen", { ok: false, reason: "name_invalid" });
-    return res.status(200).json({
-      success: true,
-      verified: false,
-      preScreeningPassed: false,
-      message: "Full name must match the name on the card (at least first + last name).",
-    });
-  }
-
   const selfieSource = parsed.data.selfieSource || "upload";
-  if (selfieSource === "upload") {
-    audit(req, "verify.ghana_card.prescreen", { ok: true, selfieSource, decision: "manual_review" });
-    // Never auto-verify uploads (manual review required)
-    return res.status(200).json({
-      success: true,
-      verified: false,
-      preScreeningPassed: true,
-      pendingManualReview: true,
-      referenceId: `NIA_PRE_${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`,
-      message: "Submitted for manual review (24–48 hours).",
-    });
-  }
 
-  audit(req, "verify.ghana_card.prescreen", { ok: true, selfieSource, decision: "await_nia" });
-  // Live camera: prescreen passes, still no auto-verify (NIA decision required)
+  const protocolA = runProtocolA(parsed.data.cardNumber, parsed.data.fullName);
+  const protocolB = runProtocolB(parsed.data.faceImage, parsed.data.frontCardImage, { selfieSource });
+
+  const protocolResults = [protocolA, protocolB];
+  const securityReport = buildSecurityReport(protocolResults);
+
+  const biometricMismatch = protocolB.skipped !== true && protocolB.passed === false;
+  const flaggedForArbitrator =
+    protocolA.passed === false || biometricMismatch;
+
+  const preScreeningPassed =
+    protocolA.passed && (protocolB.passed !== false || protocolB.skipped === true);
+
+  const smartlandProtocols = {
+    checkedAt: new Date().toISOString(),
+    thesisNotes: THESIS,
+    protocolA,
+    protocolB,
+    securityReport,
+    overallPrescreenPassed: preScreeningPassed,
+    flaggedForArbitrator,
+  };
+
+  audit(req, "verify.smartland_protocols", {
+    protocolA: protocolA.passed,
+    protocolBPassed: protocolB.passed,
+    protocolBSkipped: protocolB.skipped,
+    biometricMismatch,
+    flaggedForArbitrator,
+  });
+
+  const referenceId = `IVS_SIM_${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
+
   return res.status(200).json({
     success: true,
     verified: false,
-    preScreeningPassed: true,
-    pendingManualReview: false,
-    referenceId: `NIA_PRE_${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`,
-    message: "Pre-screening passed. Awaiting NIA verification (24–48 hours).",
+    preScreeningPassed,
+    pendingManualReview: selfieSource === "upload" || protocolB.skipped === true,
+    flaggedForArbitrator,
+    biometricMismatch,
+    referenceId,
+    message: flaggedForArbitrator
+      ? "Security rules flagged this submission — manual/arbitrator review required."
+      : preScreeningPassed
+        ? selfieSource === "upload"
+          ? "Protocol A/B prescreen stored; upload selfie requires NIA manual review."
+          : "Protocol A/B prescreen passed; awaiting NIA decision on live IVS queue."
+        : "Verification failed prescreen checks.",
+    thesisNotes: THESIS,
+    protocolA,
+    protocolB,
+    securityReport,
+    smartlandProtocols,
+  });
+});
+
+router.get("/dashboard-rules", (_req, res) => {
+  res.json({
+    success: true,
+    thesis:
+      "SmartLand exposes a rule matrix per dashboard persona; enforcement is in routes + conflict engine.",
+    rules: DASHBOARD_RULES,
   });
 });
 
 export default router;
-

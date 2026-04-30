@@ -15,6 +15,7 @@ import userRoutes from "./src/routes/usersCompat.js";
 import notificationRoutes from "./src/routes/notifications.js";
 import ratingRoutes from "./src/routes/ratings.js";
 import transferRoutes from "./src/routes/transfers.js";
+import lawRoutes from "./src/routes/laws.js";
 
 const app = express();
 
@@ -47,6 +48,10 @@ app.use(
     origin(origin, cb) {
       if (!origin) return cb(null, true);
       if (allowedOrigins.has(origin)) return cb(null, true);
+      // Capacitor / Ionic WebView
+      if (String(origin).startsWith("capacitor://")) return cb(null, true);
+      if (String(origin).startsWith("ionic://")) return cb(null, true);
+      if (/^https:\/\/localhost(?::\d+)?$/.test(String(origin))) return cb(null, true);
       return cb(new Error("CORS blocked"), false);
     },
     credentials: true,
@@ -66,6 +71,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/ratings", ratingRoutes);
 app.use("/api/transfers", transferRoutes);
+app.use("/api/laws", lawRoutes);
 
 app.get("/", (req, res) => {
   res.send("SmartLand API running");
@@ -76,6 +82,7 @@ app.get("/health", (_req, res) => {
 });
 
 const PORT = Number(process.env.PORT || 3001);
-app.listen(PORT, () => {
-  console.log(`SmartLand API running at http://localhost:${PORT}`);
+const HOST = process.env.BIND_HOST || "0.0.0.0";
+app.listen(PORT, HOST, () => {
+  console.log(`SmartLand API listening on http://${HOST}:${PORT} (use LAN IP from phone/emulator)`);
 });

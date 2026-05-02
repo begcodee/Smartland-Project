@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { getInitials } from '@/lib/initials';
 import { formatCurrency } from '@/lib/mockData';
 import { 
   MapPin, Info, DollarSign, Ruler, Calendar, User, 
@@ -379,7 +380,7 @@ export const GhanaMapViewer = () => {
                     <div key={comment.id} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
                       <Avatar className="w-8 h-8">
                         <AvatarFallback className="text-xs">
-                          {comment.userName.split(' ').map(n => n[0]).join('')}
+                          {getInitials(comment.userName)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 space-y-1">

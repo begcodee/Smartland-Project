@@ -66,7 +66,7 @@ router.get("/users/:id/summary", authenticate, (req, res) => {
   const u = store.users.get(userId);
   if (!u) return res.status(404).json({ error: "User not found" });
   const summary = computeReceivedRatingsSummary(userId);
-  res.json({ success: true, user: publicUser(u), summary });
+  res.json({ success: true, user: publicUser(u, req.user), summary });
 });
 
 router.get("/users/:id", authenticate, (req, res) => {
@@ -78,7 +78,7 @@ router.get("/users/:id", authenticate, (req, res) => {
     .filter((r) => r.toUserId === userId)
     .slice()
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-  res.json({ success: true, user: publicUser(u), ratings: received });
+  res.json({ success: true, user: publicUser(u, req.user), ratings: received });
 });
 
 router.post("/", authenticate, (req, res) => {

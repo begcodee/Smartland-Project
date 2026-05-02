@@ -25,7 +25,8 @@ export function authenticate(req, res, next) {
     const payload = jwt.verify(token, JWT_SECRET);
     const user = store.users.get(payload.sub);
     if (!user) return res.status(401).json({ error: "Invalid token user" });
-    req.user = publicUser(user);
+    // Self view: keep full identity for accountability
+    req.user = publicUser(user, { id: user.id, role: user.role });
     next();
   } catch {
     return res.status(401).json({ error: "Invalid token" });

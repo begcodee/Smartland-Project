@@ -10,8 +10,8 @@ const router = express.Router();
 router.get("/users", authenticate, requireRole("nia"), (_req, res) => {
   seedIfEmpty();
   const pending = Array.from(store.users.values())
-    .filter((u) => u.role !== "nia" && u.niaStatus === "pending")
-    .map(publicUser);
+    .filter((u) => u.role !== "nia" && u.role !== "admin" && u.role !== "lands_commission" && u.niaStatus === "pending")
+    .map((u) => publicUser(u, _req.user));
   res.json({ success: true, users: pending });
 });
 
@@ -73,7 +73,7 @@ router.post("/users/:id/decision", authenticate, requireRole("nia"), (req, res) 
   });
 
   audit(req, "nia.user.decision", { targetUserId: target.id, decision });
-  res.json({ success: true, user: publicUser(target) });
+  res.json({ success: true, user: publicUser(target, req.user) });
 });
 
 export default router;

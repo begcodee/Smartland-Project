@@ -27,6 +27,7 @@ export function VerifyIdentityBanner({ onDismiss }: VerifyIdentityBannerProps) {
   const [dismissed, setDismissed] = useState(false);
 
   const isLockedRole = !!user && LOCKED_ROLES.includes(user.role);
+  const isUnderReview = !!user && user.verificationStatus === 'pending' && !!user.idVerification;
 
   if (!user || user.verificationStatus === 'verified' || (dismissed && !isLockedRole)) return null;
 
@@ -44,9 +45,18 @@ export function VerifyIdentityBanner({ onDismiss }: VerifyIdentityBannerProps) {
   return (
     <>
       <Alert className={`mb-6 flex items-start gap-3 relative ${isLockedRole ? 'border-destructive/40 bg-destructive/8 pr-4' : 'border-accent/60 bg-accent/10 pr-10'}`}>
-        <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5" style={{ color: isLockedRole ? 'hsl(0 72% 51%)' : 'hsl(42 100% 40%)' }} />
+        {isUnderReview ? (
+          <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5 text-primary" />
+        ) : (
+          <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5" style={{ color: isLockedRole ? 'hsl(0 72% 51%)' : 'hsl(42 100% 40%)' }} />
+        )}
         <AlertDescription className="text-foreground flex-1">
-          {isLockedRole ? (
+          {isUnderReview ? (
+            <>
+              <span className="font-semibold">Identity verification under review</span>
+              {' — '}your Ghana Card submission was received. You will be notified of your verification status within <strong>24–48 hours</strong>.
+            </>
+          ) : isLockedRole ? (
             <>
               <span className="font-semibold text-destructive">Identity verification required</span>
               {' — '}your Ghana Card has not been verified. You cannot list properties, make offers, or complete transactions until verification is complete.{' '}
@@ -57,13 +67,15 @@ export function VerifyIdentityBanner({ onDismiss }: VerifyIdentityBannerProps) {
               detailed parcel views, and all registry features.{' '}
             </>
           )}
-          <Button
-            variant="link"
-            className="p-0 h-auto text-primary font-semibold underline-offset-2"
-            onClick={() => setOpen(true)}
-          >
-            Verify now →
-          </Button>
+          {!isUnderReview && (
+            <Button
+              variant="link"
+              className="p-0 h-auto text-primary font-semibold underline-offset-2"
+              onClick={() => setOpen(true)}
+            >
+              Verify now →
+            </Button>
+          )}
         </AlertDescription>
         {!isLockedRole && (
           <button

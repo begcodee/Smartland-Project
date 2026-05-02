@@ -1,5 +1,7 @@
 import express from "express";
 import { z } from "zod";
+import { authenticate, requireRole } from "../auth.js";
+import { seedIfEmpty, store, publicUser } from "../store.js";
 import {
   runProtocolA,
   runProtocolB,
@@ -8,6 +10,7 @@ import {
 } from "../services/smartlandVerificationProtocols.js";
 import { audit } from "../services/audit.js";
 import { DASHBOARD_RULES } from "../services/dashboardRules.js";
+import { createNotification } from "./notifications.js";
 
 const router = express.Router();
 
@@ -40,8 +43,7 @@ router.post("/ghana-card", (req, res) => {
   const securityReport = buildSecurityReport(protocolResults);
 
   const biometricMismatch = protocolB.skipped !== true && protocolB.passed === false;
-  const flaggedForArbitrator =
-    protocolA.passed === false || biometricMismatch;
+  const flaggedForArbitrator = biometricMismatch;
 
   const preScreeningPassed =
     protocolA.passed && (protocolB.passed !== false || protocolB.skipped === true);
@@ -74,17 +76,7 @@ router.post("/ghana-card", (req, res) => {
     flaggedForArbitrator,
     biometricMismatch,
     referenceId,
-    message: flaggedForArbitrator
-      ? "Security rules flagged this submission — manual/arbitrator review required."
-      : preScreeningPassed
-        ? selfieSource === "upload"
-          ? "Protocol A/B prescreen stored; upload selfie requires NIA manual review."
-          : "Protocol A/B prescreen passed; awaiting NIA decision on live IVS queue."
-        : "Verification failed prescreen checks.",
-    thesisNotes: THESIS,
-    protocolA,
-    protocolB,
-    securityReport,
+    message: "Submission received. You will be notified of your verification status within 24–48 hours.",
     smartlandProtocols,
   });
 });
@@ -96,6 +88,35 @@ router.get("/dashboard-rules", (_req, res) => {
       "SmartLand exposes a rule matrix per dashboard persona; enforcement is in routes + conflict engine.",
     rules: DASHBOARD_RULES,
   });
+});
+
+/**
+ * Demo helper: allow an admin to simulate NIA verification for a user.
+ * This is DEV-only to keep the strict workflow intact for real deployments.
+ */
+router.post("/demo/force-nia/:id", authenticate, requireRole("admin"), (req, res) => {
+  seedIfEmpty();
+  const devOnly = process.env.NODE_ENV !== "production";
+  if (!devOnly) return res.status(403).json({ error: "Not available in production" });
+
+  const target = store.users.get(String(req.params.id));
+  if (!target) return res.status(404).json({ error: "User not found" });
+
+  target.niaStatus = "verified";
+  target.niaReferenceId = `NIA_DEMO_${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
+  target.niaVerifiedAt = new Date().toISOString();
+
+  createNotification({
+    userId: target.id,
+    type: "info",
+    category: "verification",
+    title: "NIA status updated (demo)",
+    message: "Your NIA verification was set to VERIFIED for demo testing. Lands Commission can now approve your account.",
+    actionUrl: "/admin",
+  });
+
+  audit(req, "demo.force_nia_verified", { targetUserId: target.id });
+  res.json({ success: true, user: publicUser(target, req.user) });
 });
 
 export default router;

@@ -22,44 +22,49 @@ SmartLand supports the **Ghana Lands Commission** in planning and development of
 | Forged documents & court appeals | On-chain proof of title + Ghana Card–backed identity |
 | Same land sold multiple times | Single source of truth on-chain; transfer only from current owner |
 | Impersonation | Ghana Card (NIA IVSP) verification + SSI binding identity to wallet/account |
-| Opacity & corruption risk | Transparent, auditable history; role-based access; admin oversight |
+| Opacity & corruption risk | Transparent, auditable history; role-based access; **Ghana Lands Commission** (Admin) oversight |
 
 ### 1.3 Design Principles
 - **Safe & secure** — Suitable for a government-backed land commission
-- **Role-based** — Four distinct entities with separate UIs and access control
+- **Role-based** — Distinct roles: **Admin** (*is* the Ghana Lands Commission registry authority), **NIA**, **seller**, **buyer**, **arbitrator** — separate UIs and access control
 - **Ghana-first** — Ghana Card verification, GHS, local mobile money
 - **Cost-conscious** — Low gas fees, efficient use of blockchain
 
 ---
 
-## 2. Four Entities & Role-Based Access
+## 2. Entities & Role-Based Access
+
+SmartLand treats **end users** (sellers, buyers, arbitrators) and **institutional operators** (**Admin** = Ghana Lands Commission; **NIA** verification officers) as separate roles. Everyone authenticates as a **user** with exactly one primary role for routing and authorization. There is **no separate “generic admin”** outside the Commission — **the Lands Commission is the Admin.**
 
 | Entity | Description | Access & UI |
 |--------|-------------|-------------|
-| **Admin** | Ghana Lands Commission staff; system oversight, KYC/approvals, audit | Full system view; user/parcel/dispute management; reports; config |
+| **Admin** (**Ghana Lands Commission**) | Official registry authority: Commission staff accounts for system oversight, approvals after NIA identity verification, audit | Full system view; user/parcel/dispute management; reports; config (`/admin`) |
+| **NIA** | National Identification Authority staff; Ghana Card / biometric verification queue | Verification inbox; approve/reject identity submissions; reference IDs; verification audit — **no** parcel listing, escrow, or dispute fund control |
 | **Seller** | Landowners / agents listing and selling property | List parcels, manage listings, receive payments, view own sales & documents |
 | **Buyer** | Individuals or entities buying land | Browse/search, make offers, pay (escrow), view purchases & title history |
 | **Arbitrator** | Certified mediators/arbitrators for disputes | View assigned disputes, evidence, votes; propose/resolve outcomes; no fund control |
 
 ### 2.1 Access Matrix (High Level)
-| Capability | Admin | Seller | Buyer | Arbitrator |
-|------------|--------|--------|-------|------------|
-| Verify Ghana Card (trigger) | ✓ | ✓ (self) | ✓ (self) | ✓ (self) |
-| Register/list land | ✓ | ✓ | ✗ | ✗ |
-| Search & view listings | ✓ | ✓ (all + own) | ✓ | Limited (dispute context) |
-| Initiate purchase / escrow | ✓ | ✗ | ✓ | ✗ |
-| Release escrow / complete transfer | ✓ (override) | ✓ (as seller) | ✗ | ✗ |
-| File dispute | ✓ | ✓ | ✓ | ✗ |
-| Vote / mediate / resolve dispute | ✓ | ✓ (as party/voter) | ✓ (as party/voter) | ✓ (full) |
-| Manage users & roles | ✓ | ✗ | ✗ | ✗ |
-| View audit logs & analytics | ✓ | Own only | Own only | Assigned cases |
-| Payment methods (deposit/withdraw) | ✓ | ✓ | ✓ | ✓ (fees only) |
+| Capability | Admin (Ghana Lands Commission) | NIA | Seller | Buyer | Arbitrator |
+|------------|--------|-----|--------|-------|------------|
+| Submit Ghana Card / identity for verification | ✓ (self if applicable) | ✓ (self if applicable) | ✓ (self) | ✓ (self) | ✓ (self) |
+| **Decide** NIA identity verification (approve/reject applicants) | ✗ | ✓ | ✗ | ✗ | ✗ |
+| Registry / account approval — seller & buyer access to full features (after NIA verified) | ✓ | ✗ | ✗ | ✗ | ✗ |
+| Register/list land | ✓ | ✗ | ✓ | ✗ | ✗ |
+| Search & view listings | ✓ | Limited (verification context) | ✓ (all + own) | ✓ | Limited (dispute context) |
+| Initiate purchase / escrow | ✓ | ✗ | ✗ | ✓ | ✗ |
+| Release escrow / complete transfer | ✓ (override) | ✗ | ✓ (as seller) | ✗ | ✗ |
+| File dispute | ✓ | ✗ | ✓ | ✓ | ✗ |
+| Vote / mediate / resolve dispute | ✓ | ✗ | ✓ (as party/voter) | ✓ (as party/voter) | ✓ (full) |
+| Manage users & roles | ✓ | ✗ | ✗ | ✗ | ✗ |
+| View audit logs & analytics | ✓ | Verification scope | Own only | Own only | Assigned cases |
+| Payment methods (deposit/withdraw) | ✓ | ✗ | ✓ | ✓ | ✓ (fees only) |
 
 ### 2.2 Frontend Structure (Role-Specific Pages)
-- **Single app** with one codebase; routes and components rendered by role.
-- **After login**: redirect to role-specific dashboard (`/admin`, `/seller`, `/buyer`, `/arbitrator`).
-- **Shared**: Auth, Ghana Card verification flow, wallet/payment UI (Binance-like), help/legal.
-- **Separate**: Dashboards, listing management (seller), search & purchase (buyer), dispute workspace (arbitrator), admin panels.
+- **Single app** with one codebase; routes and components rendered by role (each **user** account has one primary role).
+- **After login**: redirect to role-specific dashboard (**`/admin`** = Ghana Lands Commission, **`/nia`**, `/seller`, `/buyer`, `/arbitrator`).
+- **Shared**: Auth, Ghana Card verification flow (submit), wallet/payment UI (Binance-like) where applicable, help/legal.
+- **Separate**: **Admin (Ghana Lands Commission)** dashboards, **NIA** verification queue, listing management (seller), search & purchase (buyer), dispute workspace (arbitrator).
 
 ---
 
@@ -125,13 +130,13 @@ SmartLand supports the **Ghana Lands Commission** in planning and development of
 | **LandRegistry** | Parcel registry: register parcel (admin/seller), update owner on transfer, store title hash; emit events for indexer. |
 | **Escrow** | Lock payment (GHS equivalent or stablecoin); release to seller on completion or refund to buyer on dispute/cancel; optional multi-sig for large deals. |
 | **DisputeResolution** | Create dispute, link to parcel & escrow; assign arbitrator; record votes/outcome; trigger escrow release/refund based on resolution. |
-| **AccessControl** | Roles (Admin, Seller, Buyer, Arbitrator); grant/revoke by super-admin; used by other contracts to restrict who can call what. |
+| **AccessControl** | On-chain roles: **Admin** (Ghana Lands Commission authority), Seller, Buyer, Arbitrator. **NIA** verification is enforced in the **application layer** (and optionally recorded as hashes/events on-chain); contract calls still rely on AccessControl for economic actions (escrow, title transfer). |
 | **Optional: PaymentRouter** | If you tokenize fiat (e.g. GHS-backed or stablecoin), route funds from mobile money / card gateway into escrow (via backend + one on-chain “mint/deposit” step). |
 
 ### 5.2 Security Practices
 - Use **OpenZeppelin** (AccessControl, ReentrancyGuard, Pausable).
 - **Upgradeability** — Consider proxies (e.g. UUPS) for LandRegistry and Escrow so Ghana Lands Commission can fix bugs or adjust logic under strict governance.
-- **Multi-sig** for admin (e.g. 2-of-3 or 3-of-5) for critical operations.
+- **Multi-sig** for **Admin** (Ghana Lands Commission) keys (e.g. 2-of-3 or 3-of-5) for critical operations.
 - **Events** for every state change to support off-chain indexing and audit.
 
 ---
@@ -170,11 +175,11 @@ SmartLand supports the **Ghana Lands Commission** in planning and development of
 ### 7.1 Identity & KYC
 - **Ghana Card** via NIA IVSP only; no reliance on photocopies or manual checks.
 - **SSI** for verifiable “Ghana Card verified” and role credentials; reduce replay and impersonation.
-- **Session & auth** — JWT or session tokens; short-lived; refresh flow; optional 2FA for admin/arbitrator.
+- **Session & auth** — JWT or session tokens; short-lived; refresh flow; optional 2FA for **Admin** (Ghana Lands Commission), **NIA**, and arbitrator.
 
 ### 7.2 Backend
 - **API** — HTTPS only; rate limiting; CORS; input validation and sanitization.
-- **AuthZ** — Every request checked against role (Admin/Seller/Buyer/Arbitrator) and resource (e.g. parcel, dispute).
+- **AuthZ** — Every request checked against role (**Admin** = Ghana Lands Commission, **NIA**, Seller, Buyer, Arbitrator) and resource (e.g. parcel, dispute, verification record).
 - **Secrets** — API keys (NIA, MoMo, Stripe, etc.) in env vault; no keys in frontend.
 - **Audit logs** — Who did what, when (e.g. role change, parcel created, escrow released); store hashes on-chain if desired.
 
@@ -227,7 +232,7 @@ SmartLand supports the **Ghana Lands Commission** in planning and development of
 - Auth: login, register, role selection; JWT/session; role-based redirect.
 - Ghana Card: NIA IVSP onboarding + integration; “Ghana Card verified” flag and optional VC.
 - DB schema: users, roles, parcels (metadata), disputes (metadata).
-- Basic frontend: role-specific dashboards (placeholder content); shared layout and nav.
+- Basic frontend: role-specific dashboards (**including NIA verification workspace**); shared layout and nav.
 
 ### Phase 2 — Blockchain & Contracts (Weeks 5–8)
 - LandRegistry + AccessControl on Polygon testnet; deploy scripts and tests.
@@ -238,7 +243,7 @@ SmartLand supports the **Ghana Lands Commission** in planning and development of
 ### Phase 3 — Parcels & Listings (Weeks 9–12)
 - Seller: create/list parcel (metadata in DB + hash/ID on-chain); edit/delist.
 - Buyer: search/filter listings; view detail; “request to buy” or “make offer”.
-- Admin: approve/flag listings; view all parcels and history.
+- **Admin (Ghana Lands Commission):** approve/flag listings; view all parcels and history.
 - Optional: map (e.g. Ghana regions) and document upload (hash stored on-chain).
 
 ### Phase 4 — Payments (Weeks 13–16)
@@ -248,7 +253,7 @@ SmartLand supports the **Ghana Lands Commission** in planning and development of
 - Credit card (Stripe/Paystack) and other mobile money (Telecel, AirtelTigo) when APIs are available.
 
 ### Phase 5 — Disputes & Arbitration (Weeks 17–20)
-- File dispute (buyer/seller); assign arbitrator (admin or automatic).
+- File dispute (buyer/seller); assign arbitrator (**Admin** / Ghana Lands Commission or automatic).
 - Arbitrator UI: view case, evidence, timeline; propose resolution; record outcome on-chain.
 - Auto-refund or release from Escrow based on resolution.
 - Notifications and basic email/dashboard alerts.
@@ -256,7 +261,7 @@ SmartLand supports the **Ghana Lands Commission** in planning and development of
 ### Phase 6 — Hardening & Launch (Weeks 21–24)
 - Security review (backend, frontend, contracts); penetration testing.
 - NIA IVSP and payment providers go-live (production credentials).
-- Admin training; runbooks; monitoring and alerts.
+- **Admin** (Ghana Lands Commission) training; runbooks; monitoring and alerts.
 - Soft launch with Ghana Lands Commission; iterate from feedback.
 
 ---
@@ -264,10 +269,10 @@ SmartLand supports the **Ghana Lands Commission** in planning and development of
 ## 10. Success Metrics
 
 - **Integrity:** No duplicate titles for same parcel; every transfer and dispute outcome on-chain.
-- **Identity:** 100% of active sellers/buyers/arbitrators verified via Ghana Card (NIA IVSP).
+- **Identity:** 100% of active sellers/buyers/arbitrators verified via Ghana Card (NIA IVSP), with **NIA role** processing verifications per policy.
 - **Availability:** Uptime target (e.g. 99.5%); payment and escrow completion within SLA.
 - **Cost:** Gas per transaction (target &lt; $0.05 on Polygon); affordable for commission and users.
-- **Trust:** Audit trail for every admin action and dispute resolution; transparent to authorized roles.
+- **Trust:** Audit trail for every **Admin** (Ghana Lands Commission) action and dispute resolution; transparent to authorized roles.
 
 ---
 

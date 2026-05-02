@@ -11,4 +11,6 @@ export const MOCK_NIA_LEDGER = [
   { pin: "GHA-200200200-2", fullName: "Akosua Frimpong" },
   { pin: "GHA-300300300-3", fullName: "Ghana Land Commission" },
   { pin: "GHA-400400400-4", fullName: "Dr. Ama Osei" },
+  { pin: "GHA-712230043-2", fullName: "Paul Hackman" },
+  { pin: "GHA-728474024-7", fullName: "Leslie Ofosu-Kontoh" },
 ];

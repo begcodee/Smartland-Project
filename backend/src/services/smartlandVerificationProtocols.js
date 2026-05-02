@@ -16,7 +16,7 @@ export const BIOMETRIC_THRESHOLD = Number(process.env.BIOMETRIC_MATCH_THRESHOLD 
 
 export const THESIS = {
   protocolA:
-    "The system implements a RESTful simulation of the NIA Identity Verification System (IVS) as per L.I. 2111, validating the PIN against a local mock-ledger.",
+    "Protocol A validates Ghana Card PIN format and basic plausibility checks (simulation).",
   protocolB:
     "Facial dimensions are compared using a 1:1 biometric matching algorithm (simulated) to ensure biometric binding between the holder and the Ghana Card image.",
   protocolC:
@@ -67,7 +67,7 @@ export function mockBiometricSimilarity(selfieDataUrl, cardPortraitDataUrl) {
   return ok ? 0.972 : 0.71;
 }
 
-/** Protocol A — format + mock ledger handshake */
+/** Protocol A — format + basic plausibility (no mock-ledger gating) */
 export function runProtocolA(cardNumber, fullName) {
   const normalized = normalizeGhanaCardNumber(cardNumber);
   const flags = [];
@@ -75,18 +75,12 @@ export function runProtocolA(cardNumber, fullName) {
   if (isObviouslyFakeGhanaCard(normalized)) flags.push("OBVIOUSLY_FAKE_PIN_PATTERN");
   if (!validateFullNameOnCard(fullName)) flags.push("INVALID_CARD_NAME");
 
-  const ledger = lookupMockNiaLedger(normalized, fullName);
-  if (!ledger.hit) flags.push("PIN_NOT_IN_MOCK_NIA_LEDGER");
-  else if (!ledger.nameOk) flags.push("NAME_MISMATCH_MOCK_LEDGER");
-
   const passed = flags.length === 0;
   return {
     protocol: "A",
-    name: "Ghana Card format & mock NIA ledger",
+    name: "Ghana Card format (basic checks)",
     passed,
     pinNormalized: normalized,
-    mockLedgerHit: ledger.hit,
-    ledgerNameSimilarity: ledger.hit ? ledger.nameSimilarity : null,
     flags,
     thesisNote: THESIS.protocolA,
   };

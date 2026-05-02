@@ -6,11 +6,23 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Loader2, MessageCircle, PhoneCall, ShieldCheck, Gavel, UserRound, ExternalLink, Paperclip, Camera, X, LayoutGrid } from 'lucide-react';
+import { Loader2, MessageCircle, PhoneCall, ShieldCheck, Gavel, UserRound, ExternalLink, Paperclip, Camera, X, LayoutGrid, Mic, Square } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { getInitials } from '@/lib/initials';
 
-type Attachment = { kind: 'image' | 'document'; name: string; mimeType: string; dataUrl: string };
+type Attachment =
+  | { kind: 'image' | 'document'; name: string; mimeType: string; dataUrl: string }
+  | {
+      kind: 'audio';
+      name: string;
+      mimeType: string;
+      dataUrl: string;
+      transcript?: string;
+      transcriptImmutable?: boolean;
+      auditHash?: string;
+      keywordFlags?: string[];
+    };
 type Msg = {
   id: string;
   body: string;
@@ -46,6 +58,12 @@ export function ParcelChatDialog({ open, onOpenChange, landParcelId, parcelTitle
   const [otherTyping, setOtherTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const micChunksRef = useRef<BlobPart[]>([]);
+  const [recording, setRecording] = useState(false);
+  const [speechTranscript, setSpeechTranscript] = useState<string>('');
+  const speechRef = useRef<any>(null);
   const camVideoRef = useRef<HTMLVideoElement>(null);
   const camCanvasRef = useRef<HTMLCanvasElement>(null);
   const [camOpen, setCamOpen] = useState(false);
@@ -54,6 +72,7 @@ export function ParcelChatDialog({ open, onOpenChange, landParcelId, parcelTitle
   const typingChannelRef = useRef<BroadcastChannel | null>(null);
 
   const myId = user?.id ?? '';
+  const verifiedForAudio = Boolean(user?.verified) && user?.niaStatus === 'verified';
 
   const canUse = useMemo(() => Boolean(open && landParcelId && myId), [open, landParcelId, myId]);
 
@@ -76,10 +95,119 @@ export function ParcelChatDialog({ open, onOpenChange, landParcelId, parcelTitle
         r.onerror = () => reject(new Error('Failed to read file'));
         r.readAsDataURL(f);
       });
-      const kind: Attachment['kind'] = f.type.startsWith('image/') ? 'image' : 'document';
+      const kind = f.type.startsWith('image/') ? 'image' : 'document';
       next.push({ kind, name: f.name, mimeType: f.type || 'application/octet-stream', dataUrl });
     }
     if (next.length) setDraftAttachments((prev) => [...prev, ...next]);
+  };
+
+  const stopSpeech = () => {
+    try {
+      if (speechRef.current) {
+        speechRef.current.onresult = null;
+        speechRef.current.onerror = null;
+        speechRef.current.onend = null;
+        speechRef.current.stop?.();
+      }
+    } catch {
+      // ignore
+    } finally {
+      speechRef.current = null;
+    }
+  };
+
+  const startSpeech = () => {
+    setSpeechTranscript('');
+    try {
+      const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SR) return;
+      const rec = new SR();
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.lang = 'en-US';
+      rec.onresult = (event: any) => {
+        let txt = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          txt += String(event.results[i][0]?.transcript || '');
+        }
+        if (txt.trim()) setSpeechTranscript((prev) => (prev ? (prev + ' ' + txt).trim() : txt.trim()));
+      };
+      rec.onerror = () => {};
+      rec.onend = () => {};
+      speechRef.current = rec;
+      rec.start();
+    } catch {
+      // ignore
+    }
+  };
+
+  const startRecording = async () => {
+    if (!verifiedForAudio) return;
+    if (draftAttachments.length >= 5) return;
+    if (recording) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      micStreamRef.current = stream;
+      micChunksRef.current = [];
+
+      const mimeType =
+        MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+      const mr = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = mr;
+
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) micChunksRef.current.push(e.data);
+      };
+      mr.onstop = async () => {
+        try {
+          const blob = new Blob(micChunksRef.current, { type: mr.mimeType || 'audio/webm' });
+          // Keep demo-safe size (~2MB). Longer notes can be enabled later.
+          if (blob.size > 2_000_000) {
+            setSpeechTranscript('');
+            return;
+          }
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => resolve(String(r.result || ''));
+            r.onerror = () => reject(new Error('Failed to read audio'));
+            r.readAsDataURL(blob);
+          });
+
+          const stamp = Date.now();
+          const senderInitials = getInitials(user?.name);
+          const name = `${landParcelId}_${stamp}_${senderInitials}.webm`;
+          const transcript = speechTranscript.trim() || undefined;
+
+          setDraftAttachments((prev) => [
+            ...prev.slice(0, 4),
+            { kind: 'audio', name, mimeType: blob.type || 'audio/webm', dataUrl, transcript }
+          ]);
+        } finally {
+          setSpeechTranscript('');
+        }
+      };
+
+      setRecording(true);
+      startSpeech();
+      mr.start(250);
+    } catch {
+      // ignore
+    }
+  };
+
+  const stopRecording = () => {
+    if (!recording) return;
+    try {
+      stopSpeech();
+      mediaRecorderRef.current?.stop();
+    } catch {
+      // ignore
+    } finally {
+      setRecording(false);
+      mediaRecorderRef.current = null;
+      micStreamRef.current?.getTracks().forEach((t) => t.stop());
+      micStreamRef.current = null;
+    }
   };
 
   const stopCamera = () => {
@@ -208,14 +336,7 @@ export function ParcelChatDialog({ open, onOpenChange, landParcelId, parcelTitle
     }
   };
 
-  const otherInitials = useMemo(() => {
-    const n = otherParty?.name?.trim() || '';
-    if (!n) return '?';
-    const parts = n.split(/\s+/).filter(Boolean);
-    const a = parts[0]?.[0] ?? '';
-    const b = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : '';
-    return (a + b).toUpperCase() || '?';
-  }, [otherParty?.name]);
+  const otherInitials = useMemo(() => getInitials(otherParty?.name), [otherParty?.name]);
 
   useEffect(() => {
     if (!profileOpen || !otherParty) return;
@@ -459,6 +580,32 @@ export function ParcelChatDialog({ open, onOpenChange, landParcelId, parcelTitle
                                   <div key={`${m.id}-att-${aidx}`} className="rounded-lg border border-border bg-background/40 p-2">
                                     {a.kind === 'image' ? (
                                       <img src={a.dataUrl} alt={a.name} className="max-h-48 w-full object-cover rounded-md border border-border" />
+                                    ) : a.kind === 'audio' ? (
+                                      <div className="space-y-2">
+                                        <audio controls src={a.dataUrl} className="w-full" />
+                                        {a.transcript ? (
+                                          <details className="text-xs">
+                                            <summary className="cursor-pointer underline text-primary">Read transcript</summary>
+                                            <div className="mt-2 whitespace-pre-wrap break-words text-muted-foreground">
+                                              {a.transcript}
+                                            </div>
+                                            {Array.isArray(a.keywordFlags) && a.keywordFlags.length > 0 ? (
+                                              <div className="mt-2">
+                                                <Badge variant="destructive" className="text-[10px]">
+                                                  Watchdog terms: {a.keywordFlags.join(', ')}
+                                                </Badge>
+                                              </div>
+                                            ) : null}
+                                          </details>
+                                        ) : (
+                                          <p className="text-[11px] text-muted-foreground">Transcript pending/unavailable on this device.</p>
+                                        )}
+                                        {a.auditHash ? (
+                                          <p className="text-[10px] font-mono text-muted-foreground break-all">
+                                            Hash: {a.auditHash}
+                                          </p>
+                                        ) : null}
+                                      </div>
                                     ) : (
                                       <a
                                         href={a.dataUrl}
@@ -540,6 +687,18 @@ export function ParcelChatDialog({ open, onOpenChange, landParcelId, parcelTitle
               >
                 <Camera className="h-4 w-4" />
               </Button>
+              {verifiedForAudio ? (
+                <Button
+                  type="button"
+                  variant={recording ? 'destructive' : 'outline'}
+                  size="sm"
+                  onClick={() => (recording ? stopRecording() : void startRecording())}
+                  disabled={draftAttachments.length >= 5}
+                  title={recording ? 'Stop recording' : 'Record voice note'}
+                >
+                  {recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
+              ) : null}
               {otherParty?.label === 'Seller' && (
                 <Dialog open={catalogOpen} onOpenChange={setCatalogOpen}>
                   <DialogTrigger asChild>

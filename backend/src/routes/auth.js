@@ -53,7 +53,8 @@ router.post("/register", async (req, res) => {
     passwordHash,
     createdAt: new Date().toISOString(),
     verified: false,
-    niaStatus: "pending",
+    // State-aware routing: user has not submitted Ghana Card yet.
+    niaStatus: null,
     niaReferenceId: null,
     niaVerifiedAt: null,
     idVerification: null,
@@ -67,7 +68,7 @@ router.post("/register", async (req, res) => {
   const token = signToken(user);
   res.status(201).json({
     token,
-    user: publicUser(user),
+    user: publicUser(user, { id: user.id, role: user.role }),
     message:
       "Account created. Verification takes 24–48 hours. You will receive an email/SMS update once complete.",
   });
@@ -92,7 +93,7 @@ router.post("/login", async (req, res) => {
   if (!ok) return res.status(401).json({ error: "Invalid credentials" });
 
   const token = signToken(user);
-  res.json({ token, user: publicUser(user) });
+  res.json({ token, user: publicUser(user, { id: user.id, role: user.role }) });
 });
 
 router.get("/me", authenticate, (req, res) => {

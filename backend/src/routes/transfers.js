@@ -29,8 +29,8 @@ function safeTransfer(t, viewerUserId) {
     sellerId: t.sellerId,
     buyerId: t.buyerId,
     parcel: parcel ? { id: parcel.id, title: parcel.title, location: parcel.location } : null,
-    seller: seller ? publicUser(seller) : null,
-    buyer: buyer ? publicUser(buyer) : null,
+    seller: seller ? publicUser(seller, { id: viewerUserId, role: store.users.get(String(viewerUserId))?.role || "public" }) : null,
+    buyer: buyer ? publicUser(buyer, { id: viewerUserId, role: store.users.get(String(viewerUserId))?.role || "public" }) : null,
     rating: {
       counterpartyId,
       alreadyRated,

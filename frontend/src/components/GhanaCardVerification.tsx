@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -19,11 +20,21 @@ import {
   GHANA_CARD_FORMAT_HINT
 } from '@/lib/ghanaCardValidation';
 import { api } from '@/lib/api';
-import { VerificationTimelineDialog } from '@/components/VerificationTimelineDialog';
+import { runDocumentGate, runPassportGate } from '@/lib/biometricPreprocessing';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  loadGhanaCardDraft,
+  saveGhanaCardDraft,
+  clearGhanaCardDraft,
+  type GhanaCardDraftV1,
+} from '@/lib/ghanaCardDraftStore';
 
 interface GhanaCardVerificationProps {
   onVerificationComplete: (verificationData: VerificationData) => void;
   userCountry: string;
+  /** After a successful PATCH `/users/me`, end the session and return to the sign-in screen (default). */
+  signOutAfterSubmit?: boolean;
 }
 
 export interface VerificationData {
@@ -62,7 +73,157 @@ const CARD_NAMES: Record<string, string> = {
   RW: 'National ID'
 };
 
-export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: GhanaCardVerificationProps) => {
+async function assessSelfieNaturalness(dataUrl: string): Promise<{ ok: boolean; reason?: string }> {
+  try {
+    if (!dataUrl?.startsWith('data:image/')) return { ok: false, reason: 'Invalid selfie image.' };
+
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = dataUrl;
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('Image load failed'));
+    });
+
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+    if (!w || !h) return { ok: false, reason: 'Selfie image could not be read.' };
+    if (w < 320 || h < 320) return { ok: false, reason: 'Selfie is too small. Please take a clearer photo.' };
+
+    // Passport-style checks (best-effort). On Chromium browsers we can use FaceDetector.
+    // If the API isn't available, we only run color/quality heuristics and avoid blocking users.
+    try {
+      const FaceDetectorCtor = (window as any).FaceDetector as
+        | (new (opts?: { fastMode?: boolean; maxDetectedFaces?: number }) => {
+            detect: (source: CanvasImageSource) => Promise<Array<{ boundingBox: DOMRectReadOnly }>>;
+          })
+        | undefined;
+      if (FaceDetectorCtor) {
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, w, h);
+          const fd = new FaceDetectorCtor({ fastMode: true, maxDetectedFaces: 2 });
+          const faces = await fd.detect(canvas);
+          if (!faces || faces.length === 0) {
+            return { ok: false, reason: 'No face detected. Use a clear passport-style selfie (no filters).' };
+          }
+          if (faces.length > 1) {
+            return { ok: false, reason: 'Multiple faces detected. Only your face should be visible.' };
+          }
+          const bb = faces[0].boundingBox;
+          const faceArea = Math.max(1, bb.width * bb.height);
+          const imgArea = Math.max(1, w * h);
+          const ratio = faceArea / imgArea;
+
+          // Face should be reasonably large like a passport photo, not far away.
+          if (ratio < 0.08) {
+            return { ok: false, reason: 'Face is too far. Move closer (passport-style) and keep your head straight.' };
+          }
+          if (ratio > 0.65) {
+            return { ok: false, reason: 'Face is too close. Step back slightly and keep your head straight.' };
+          }
+
+          // Face should be centered (reduces strong tilts/angles and cropped shots).
+          const cx = bb.x + bb.width / 2;
+          const cy = bb.y + bb.height / 2;
+          const dx = Math.abs(cx - w / 2) / (w / 2);
+          const dy = Math.abs(cy - h / 2) / (h / 2);
+          if (dx > 0.38 || dy > 0.38) {
+            return { ok: false, reason: 'Center your face like a passport photo (no tilt/angles), then retake.' };
+          }
+
+          // Strong sideways / rotated captures often produce extreme face box aspect ratios.
+          const ar = bb.width / Math.max(1, bb.height);
+          if (ar < 0.42 || ar > 1.35) {
+            return { ok: false, reason: 'Keep your head upright (no tilt) and take a natural passport-style selfie.' };
+          }
+        }
+      }
+    } catch {
+      // If face detection fails, do not block legitimate users.
+    }
+
+    // Downsample for fast analysis (no ML): look for extreme saturation / overly-smooth "beauty filter" look.
+    const maxSide = 220;
+    const scale = Math.min(1, maxSide / Math.max(w, h));
+    const sw = Math.max(1, Math.round(w * scale));
+    const sh = Math.max(1, Math.round(h * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = sw;
+    canvas.height = sh;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return { ok: true };
+    ctx.drawImage(img, 0, 0, sw, sh);
+    const { data } = ctx.getImageData(0, 0, sw, sh);
+
+    let lumSum = 0;
+    let lumSq = 0;
+    let satSum = 0;
+    let satSq = 0;
+    let n = 0;
+
+    // Sample every few pixels for speed.
+    const step = 4 * 3; // every ~3 pixels
+    for (let i = 0; i < data.length; i += step) {
+      const r = data[i] / 255;
+      const g = data[i + 1] / 255;
+      const b = data[i + 2] / 255;
+
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      const sat = max === 0 ? 0 : (max - min) / max;
+
+      lumSum += lum;
+      lumSq += lum * lum;
+      satSum += sat;
+      satSq += sat * sat;
+      n++;
+    }
+
+    const lumMean = lumSum / n;
+    const lumStd = Math.sqrt(Math.max(0, lumSq / n - lumMean * lumMean));
+    const satMean = satSum / n;
+    const satStd = Math.sqrt(Math.max(0, satSq / n - satMean * satMean));
+
+    // Heuristics:
+    // - Extremely high saturation (common in heavy filters)
+    // - Very low luminance variation (over-smoothing / airbrushing)
+    if (satMean > 0.68 && satStd < 0.22) {
+      return { ok: false, reason: 'Selfie looks heavily filtered. Please upload a natural, unedited photo.' };
+    }
+    if (lumStd < 0.055 && satMean > 0.38) {
+      return { ok: false, reason: 'Selfie looks overly smoothed/edited. Please take a natural photo in good light.' };
+    }
+
+    return { ok: true };
+  } catch {
+    // If analysis fails, don’t block legitimate users.
+    return { ok: true };
+  }
+}
+
+export const GhanaCardVerification = ({
+  onVerificationComplete,
+  userCountry,
+  signOutAfterSubmit = true
+}: GhanaCardVerificationProps) => {
+  const navigate = useNavigate();
+  const { logout, user } = useAuth();
+
+  const draftUserKey = useMemo(() => {
+    if (user?.id) return `id:${user.id}`;
+    const em = user?.email?.trim().toLowerCase();
+    if (em) return `email:${em}`;
+    return '';
+  }, [user?.id, user?.email]);
+
+  const [draftReady, setDraftReady] = useState(false);
+  const [resumeFaceScreening, setResumeFaceScreening] = useState(false);
+
   const [step, setStep] = useState(1);
   const [subStep, setSubStep] = useState<'front' | 'back' | 'details'>('front');
   const [frontCard, setFrontCard] = useState<string>('');
@@ -77,21 +238,31 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
   const [faceScreeningMessage, setFaceScreeningMessage] = useState<string>('');
   const [requiresManualReview, setRequiresManualReview] = useState(false);
   const [faceRecognitionStep, setFaceRecognitionStep] = useState<'extracting' | 'comparing' | 'liveness' | 'done' | null>(null);
+  const [faceSimilarityScore, setFaceSimilarityScore] = useState<number | null>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const [timelineOpen, setTimelineOpen] = useState(false);
-  const [pendingSubmitPayload, setPendingSubmitPayload] = useState<VerificationData | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
   /** Latest Protocol A/B snapshot from `/verify/ghana-card` — merged into PATCH `/users/me`. */
   const [smartlandProtocols, setSmartlandProtocols] = useState<Record<string, unknown> | null>(null);
-  const [securityReportLines, setSecurityReportLines] = useState<string[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  const [cameraDialogOpen, setCameraDialogOpen] = useState(false);
+  const [cameraTarget, setCameraTarget] = useState<'front' | 'back' | 'face'>('front');
+  const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
+
   const cardName = CARD_NAMES[userCountry] || 'National ID Card';
 
-  const stopCamera = useCallback(() => {
-    cameraStream?.getTracks().forEach(track => track.stop());
-    setCameraStream(null);
+  useEffect(() => {
+    cameraStreamRef.current = cameraStream;
   }, [cameraStream]);
+
+  const stopCamera = useCallback(() => {
+    const stream = cameraStreamRef.current;
+    stream?.getTracks().forEach(track => track.stop());
+    cameraStreamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setCameraStream(null);
+  }, []);
 
   useEffect(() => {
     return () => stopCamera();
@@ -109,81 +280,243 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
         toast.error('Enter your full name as printed on the card (e.g. first and last name).');
         return;
       }
-
-      setIsProcessing(true);
+      setFaceSimilarityScore(null);
       setFaceRecognitionStep('extracting');
-      setFaceScreeningDone(false);
-      setRequiresManualReview(false);
-      setFaceScreeningMessage('');
 
-      await new Promise((r) => setTimeout(r, 400));
-      setFaceRecognitionStep('comparing');
-      await new Promise((r) => setTimeout(r, 500));
-      setFaceRecognitionStep('liveness');
-      await new Promise((r) => setTimeout(r, 500));
-
+      // Pre-submission gatekeeper: run on-device quality + landmark similarity checks.
+      // IMPORTANT: This is local-only. We do NOT send anything to backend/NIA until the final "Submit" stage.
       try {
-        const res = await api.verifyGhanaCard({
-          cardNumber: normalized,
-          fullName: fullName.trim(),
-          frontCardImage: frontCard,
-          backCardImage: backCard,
-          faceImage: faceDataUrl,
-          selfieSource: method === 'upload' ? 'upload' : 'live_camera'
+        const gate = await runPassportGate({
+          selfieDataUrl: faceDataUrl,
+          ghanaCardFrontDataUrl: frontCard,
+          tiltMaxDegrees: 15,
         });
 
-        if (!res.success) {
+        if (!gate.ok) {
+          setFaceScreeningDone(false);
           setFaceRecognitionStep(null);
-          toast.error(res.message || 'Verification check failed');
+          setFaceScreeningMessage('');
+          setRequiresManualReview(false);
+          setFaceSimilarityScore(typeof gate.similarityScore === 'number' ? gate.similarityScore : null);
+          toast.error(gate.reasons?.[0] || 'Selfie was rejected. Please use a natural passport-style photo.');
           return;
         }
 
-        setSmartlandProtocols(res.smartlandProtocols ?? null);
-        setSecurityReportLines(Array.isArray(res.securityReport) ? res.securityReport : []);
+        setFaceSimilarityScore(gate.similarityScore);
 
-        if (res.flaggedForArbitrator || res.biometricMismatch) {
-          toast.error('Verification flagged', {
-            description:
-              res.biometricMismatch
-                ? 'Biometric binding below threshold — case may be escalated to an arbitrator.'
-                : res.message,
-            duration: 9000
-          });
-        }
-
-        setFaceRecognitionStep('done');
-        if (res.pendingManualReview) {
+        // Manual review band: allow user to proceed to submission, but mark manual review.
+        if (gate.decision === 'manual_review') {
+          setFaceRecognitionStep('done');
           setRequiresManualReview(true);
           setFaceScreeningDone(true);
-          setFaceScreeningMessage(res.message || 'Your submission will be reviewed by Ghana Lands Commission.');
-          toast.info(res.message || 'Manual review required for uploaded selfie.');
-        } else if (res.preScreeningPassed) {
-          setRequiresManualReview(false);
-          setFaceScreeningDone(true);
-          setFaceScreeningMessage(res.message || 'Screening passed; final approval is still required.');
-          toast.success('Live capture accepted for screening.');
-        } else {
-          setFaceScreeningDone(false);
-          toast.error(res.message || 'Could not complete screening.');
+          setFaceScreeningMessage('Pre-check complete: Manual NIA Review will be required (60–79% match). You can proceed to submit.');
+          return;
         }
       } catch (e) {
-        setFaceRecognitionStep(null);
-        toast.error(e instanceof Error ? e.message : 'Verification request failed');
-      } finally {
-        setIsProcessing(false);
+        // If CV gate fails unexpectedly, fall back to the older "naturalness" heuristic instead of blocking users.
+        const natural = await assessSelfieNaturalness(faceDataUrl);
+        if (!natural.ok) {
+          setFaceScreeningDone(false);
+          setFaceRecognitionStep(null);
+          setFaceScreeningMessage('');
+          setRequiresManualReview(false);
+          toast.error(natural.reason || 'Selfie was rejected. Please use a natural photo.');
+          return;
+        }
       }
+
+      setSmartlandProtocols(null);
+      setFaceRecognitionStep('done');
+      setRequiresManualReview(method === 'upload');
+      setFaceScreeningDone(true);
+      setFaceScreeningMessage('Pre-check passed. Proceed to submit — you will be notified within 24–48 hours.');
     },
     [frontCard, backCard, cardNumber, fullName]
   );
 
+  const isDataUrlImage = (s: string) => s.startsWith('data:image/');
+
+  /** Align saved draft with required step order so users never land on an impossible screen. */
+  const coerceDraft = useCallback((raw: GhanaCardDraftV1): { draft: GhanaCardDraftV1; resumeFace: boolean } => {
+    let step = raw.step;
+    let subStep = raw.subStep;
+    const cardNum = normalizeGhanaCardNumber(raw.cardNumber || '');
+    const fn = (raw.fullName || '').trim();
+    const detailsOk = isValidGhanaCardFormat(cardNum) && validateFullNameAsOnCard(fn);
+
+    if (!isDataUrlImage(raw.frontCard)) {
+      step = 1;
+      subStep = 'front';
+    } else if (!isDataUrlImage(raw.backCard)) {
+      step = 1;
+      subStep = 'back';
+    } else if (!detailsOk) {
+      step = 1;
+      subStep = 'details';
+    } else if (!isDataUrlImage(raw.faceImage) || !raw.faceScreeningDone) {
+      step = 2;
+    } else {
+      step = raw.step >= 3 ? 3 : 2;
+    }
+
+    const draft: GhanaCardDraftV1 = {
+      ...raw,
+      step,
+      subStep,
+      cardNumber: cardNum,
+      fullName: fn,
+    };
+
+    const resumeFace =
+      draft.step === 2 &&
+      isDataUrlImage(draft.faceImage) &&
+      !draft.faceScreeningDone &&
+      (draft.faceCaptureMethod === 'live_camera' || draft.faceCaptureMethod === 'upload');
+
+    return { draft, resumeFace };
+  }, []);
+
+  useEffect(() => {
+    if (!draftUserKey) {
+      setDraftReady(true);
+      return;
+    }
+    const loaded = loadGhanaCardDraft(draftUserKey);
+    if (loaded) {
+      const { draft, resumeFace } = coerceDraft(loaded);
+      setStep(draft.step);
+      setSubStep(draft.subStep);
+      setFrontCard(draft.frontCard);
+      setBackCard(draft.backCard);
+      setFaceImage(draft.faceImage);
+      setCardNumber(draft.cardNumber);
+      setFullName(draft.fullName);
+      setFaceCaptureMethod(draft.faceCaptureMethod);
+      setFaceScreeningDone(draft.faceScreeningDone);
+      setFaceScreeningMessage(draft.faceScreeningMessage);
+      setRequiresManualReview(draft.requiresManualReview);
+      setFaceRecognitionStep(draft.faceRecognitionStep);
+      setFaceSimilarityScore(draft.faceSimilarityScore);
+      setSmartlandProtocols(draft.smartlandProtocols);
+      setResumeFaceScreening(resumeFace);
+      const progressed =
+        draft.step > 1 ||
+        isDataUrlImage(draft.frontCard) ||
+        isDataUrlImage(draft.backCard) ||
+        !!draft.cardNumber.trim() ||
+        !!draft.fullName.trim();
+      if (progressed) {
+        toast.info('Continuing where you left off', { duration: 4500 });
+      }
+    }
+    setDraftReady(true);
+  }, [draftUserKey, coerceDraft]);
+
+  useEffect(() => {
+    if (!draftReady || !resumeFaceScreening) return;
+    if (!faceCaptureMethod || !faceImage) return;
+    if (!frontCard || !backCard) return;
+    const normalized = normalizeGhanaCardNumber(cardNumber);
+    if (!isValidGhanaCardFormat(normalized) || !validateFullNameAsOnCard(fullName)) return;
+    setResumeFaceScreening(false);
+    void runScreeningForFace(faceImage, faceCaptureMethod);
+  }, [
+    draftReady,
+    resumeFaceScreening,
+    faceCaptureMethod,
+    faceImage,
+    frontCard,
+    backCard,
+    cardNumber,
+    fullName,
+    runScreeningForFace,
+  ]);
+
+  useEffect(() => {
+    if (!draftUserKey || !draftReady) return;
+    const t = window.setTimeout(() => {
+      saveGhanaCardDraft(draftUserKey, {
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        step,
+        subStep,
+        frontCard,
+        backCard,
+        faceImage,
+        cardNumber,
+        fullName,
+        faceCaptureMethod,
+        faceScreeningDone,
+        faceScreeningMessage,
+        requiresManualReview,
+        faceRecognitionStep,
+        faceSimilarityScore,
+        smartlandProtocols,
+      });
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, [
+    draftUserKey,
+    draftReady,
+    step,
+    subStep,
+    frontCard,
+    backCard,
+    faceImage,
+    cardNumber,
+    fullName,
+    faceCaptureMethod,
+    faceScreeningDone,
+    faceScreeningMessage,
+    requiresManualReview,
+    faceRecognitionStep,
+    faceSimilarityScore,
+    smartlandProtocols,
+  ]);
+
+  const clearSavedProgress = useCallback(() => {
+    if (draftUserKey) clearGhanaCardDraft(draftUserKey);
+    stopCamera();
+    setResumeFaceScreening(false);
+    setStep(1);
+    setSubStep('front');
+    setFrontCard('');
+    setBackCard('');
+    setFaceImage('');
+    setCardNumber('');
+    setFullName('');
+    setFaceCaptureMethod(null);
+    setFaceScreeningDone(false);
+    setFaceScreeningMessage('');
+    setRequiresManualReview(false);
+    setFaceRecognitionStep(null);
+    setFaceSimilarityScore(null);
+    setSmartlandProtocols(null);
+    toast.message('Starting fresh — previous draft cleared on this device.');
+  }, [draftUserKey, stopCamera]);
+
   const handleFileUpload = (file: File, type: 'front' | 'back' | 'face') => {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const result = e.target?.result as string;
-      if (type === 'front') setFrontCard(result);
-      else if (type === 'back') setBackCard(result);
-      else {
+      if (type === 'front' || type === 'back') {
+        const gate = await runDocumentGate({ imageDataUrl: result, tiltMaxDegrees: 15 });
+        if (!gate.ok) {
+          toast.error(gate.reasons[0] || 'Please align your camera straight to the document/face.');
+          return;
+        }
+        if (type === 'front') setFrontCard(result);
+        else setBackCard(result);
+        return;
+      }
+
+      {
+        const natural = await assessSelfieNaturalness(result);
+        if (!natural.ok) {
+          toast.error(natural.reason || 'Selfie was rejected. Please use a natural photo.');
+          return;
+        }
         setFaceImage(result);
         setFaceCaptureMethod('upload');
         setFaceScreeningDone(false);
@@ -196,25 +529,88 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
 
   const startCamera = useCallback(async (facing: 'environment' | 'user' = 'environment') => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false
-      });
+      stopCamera();
+      if (!navigator.mediaDevices?.getUserMedia) {
+        toast.error('Camera is not supported in this browser.');
+        return false;
+      }
+      if (typeof window !== 'undefined' && 'isSecureContext' in window && !(window as any).isSecureContext) {
+        toast.error('Camera requires HTTPS (or localhost).');
+        return false;
+      }
+      const base: MediaTrackConstraints = {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 30 },
+      };
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            ...base,
+            facingMode: { ideal: facing },
+            // Best-effort: helps avoid very dark previews on some devices.
+            // (Not all browsers support these advanced constraints.)
+            advanced: [{ exposureMode: 'continuous' }, { whiteBalanceMode: 'continuous' }] as any
+          } as any,
+          audio: false
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { ...base, facingMode: facing } as any,
+          audio: false
+        });
+      }
       setCameraStream(stream);
       return true;
-    } catch {
-      toast.error('Camera access denied or not available.');
+    } catch (e) {
+      const err = e as any;
+      const msg =
+        typeof err?.name === 'string'
+          ? err.name === 'NotAllowedError'
+            ? 'Camera permission was blocked. Allow camera access in your browser settings.'
+            : err.name === 'NotFoundError'
+              ? 'No camera device was found.'
+              : err.name === 'NotReadableError'
+                ? 'Camera is in use by another app (Zoom/Teams/etc). Close it and try again.'
+                : `Camera error: ${err.name}`
+          : 'Camera access denied or not available.';
+      toast.error(msg);
       return false;
     }
-  }, []);
+  }, [stopCamera]);
+
+  const openCameraFor = async (target: 'front' | 'back' | 'face', facing: 'environment' | 'user') => {
+    setCameraTarget(target);
+    setCameraFacing(facing);
+    setCameraDialogOpen(true);
+  };
+
+  useEffect(() => {
+    if (!cameraDialogOpen) return;
+    void startCamera(cameraFacing);
+    // Stop when closing handled by Dialog onOpenChange
+  }, [cameraDialogOpen, cameraFacing, startCamera]);
 
   useEffect(() => {
     if (!cameraStream || !videoRef.current) return;
     videoRef.current.srcObject = cameraStream;
+    const v = videoRef.current;
+    const tryPlay = () => {
+      try {
+        const p = v.play();
+        if (p && typeof (p as any).catch === 'function') (p as any).catch(() => {});
+      } catch {
+        // ignore
+      }
+    };
+    // iOS/Safari can require metadata before play succeeds.
+    v.onloadedmetadata = () => tryPlay();
+    tryPlay();
   }, [cameraStream]);
 
   const captureFromCamera = useCallback(
-    (type: 'front' | 'back' | 'face') => {
+    async (type: 'front' | 'back' | 'face') => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       if (!video || !canvas || !video.videoWidth) return;
@@ -224,28 +620,30 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
       canvas.height = video.videoHeight;
       ctx.drawImage(video, 0, 0);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-      if (type === 'front') setFrontCard(dataUrl);
-      else if (type === 'back') setBackCard(dataUrl);
-      else {
+      if (type === 'front' || type === 'back') {
+        const gate = await runDocumentGate({ imageDataUrl: dataUrl, tiltMaxDegrees: 15 });
+        if (!gate.ok) {
+          toast.error(gate.reasons[0] || 'Please align your camera straight to the document/face.');
+          return;
+        }
+        if (type === 'front') setFrontCard(dataUrl);
+        else setBackCard(dataUrl);
+      } else {
         setFaceImage(dataUrl);
         setFaceCaptureMethod('live_camera');
         setFaceScreeningDone(false);
         setRequiresManualReview(false);
         void runScreeningForFace(dataUrl, 'live_camera');
       }
+      setCameraDialogOpen(false);
       stopCamera();
       toast.success('Photo captured');
     },
     [stopCamera, runScreeningForFace]
   );
 
-  const startFacialRecognition = async () => {
-    const hasCamera = await startCamera('user');
-    if (!hasCamera) return;
-  };
-
   const captureSelfie = () => {
-    captureFromCamera('face');
+    void captureFromCamera('face');
   };
 
   const retryFacialRecognition = () => {
@@ -255,7 +653,7 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
     setFaceRecognitionStep(null);
     setRequiresManualReview(false);
     setFaceScreeningMessage('');
-    void startFacialRecognition();
+    void openCameraFor('face', 'user');
   };
 
   const detailsValid =
@@ -297,8 +695,21 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
       };
 
       await api.saveIdVerification(verificationData as unknown as Record<string, unknown>);
-      setPendingSubmitPayload(verificationData);
-      setTimelineOpen(true);
+      if (draftUserKey) clearGhanaCardDraft(draftUserKey);
+      onVerificationComplete(verificationData);
+      if (signOutAfterSubmit) {
+        toast.success('Submission received', {
+          description: 'Sign in again with the same email and password. Your Ghana Card submission stays on file while staff review it (usually 24–48 hours).',
+          duration: 9000,
+        });
+        logout();
+        navigate('/', { replace: true });
+      } else {
+        toast.success('Submission received', {
+          description: 'You will be notified of your verification status within 24–48 hours.',
+          duration: 8000,
+        });
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Submission failed');
     } finally {
@@ -318,6 +729,18 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
         </CardTitle>
         <CardDescription className="text-muted-foreground">
           Front and back of your card plus a face match. Verification is reviewed by staff before access is granted.
+          {draftUserKey ? (
+            <span className="block mt-2 text-xs text-muted-foreground">
+              Your answers and photos are saved automatically on this device until you submit — close anytime and continue later.{' '}
+              <button
+                type="button"
+                className="underline font-medium text-foreground hover:text-primary"
+                onClick={() => clearSavedProgress()}
+              >
+                Start over
+              </button>
+            </span>
+          ) : null}
         </CardDescription>
         <Progress value={progressValue} className="h-2 bg-muted" />
       </CardHeader>
@@ -329,25 +752,6 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
               <AlertDescription className="text-foreground">
                 Upload or capture <strong>front</strong> and <strong>back</strong> of your {cardName}. For Ghana, the card number on the front must match{' '}
                 <span className="font-mono text-sm">GHA-XXXXXXXXX-X</span>.
-              </AlertDescription>
-            </Alert>
-
-            <Alert className="border-primary/30 bg-primary/5">
-              <Scan className="h-4 w-4 text-primary" />
-              <AlertTitle className="text-foreground">Mock NIA IVS (SmartLand)</AlertTitle>
-              <AlertDescription className="text-foreground text-sm space-y-2">
-                <p>
-                  Protocol A simulates L.I. 2111 IVS: your PIN must match the Ghana Card pattern{' '}
-                  <span className="font-mono">GHA-XXXXXXXXX-X</span> and appear on the{' '}
-                  <strong>local mock NIA ledger</strong>. Example demo rows:{' '}
-                  <span className="font-mono text-xs">GHA-100100100-1</span> (John Doe),{' '}
-                  <span className="font-mono text-xs">GHA-200200200-2</span> (Akosua Frimpong),{' '}
-                  <span className="font-mono text-xs">GHA-482951734-1</span> (Ama Mensah).
-                </p>
-                <p className="text-muted-foreground text-xs">
-                  Protocol B applies a 1:1 biometric binding score against your card portrait (simulated). Set backend{' '}
-                  <span className="font-mono">MOCK_BIOMETRIC_MODE=strict</span> to force sub-threshold scores for adversarial testing.
-                </p>
               </AlertDescription>
             </Alert>
 
@@ -377,7 +781,7 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
                       </div>
                       <p className="text-sm text-muted-foreground">Take a photo or upload the front of your card</p>
                       <div className="flex flex-wrap gap-2 justify-center">
-                        <Button type="button" variant="outline" size="sm" onClick={() => startCamera('environment').then(() => {})}>
+                        <Button type="button" variant="outline" size="sm" onClick={() => void openCameraFor('front', 'environment')}>
                           <Camera className="w-4 h-4 mr-2" /> Use camera
                         </Button>
                         <Label className="cursor-pointer">
@@ -387,15 +791,6 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
                           <Input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'front')} />
                         </Label>
                       </div>
-                    </div>
-                  )}
-                  {cameraStream && (
-                    <div className="mt-4 space-y-2">
-                      <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-48 rounded-lg bg-black border border-border" />
-                      <canvas ref={canvasRef} className="hidden" />
-                      <Button type="button" onClick={() => captureFromCamera('front')} className="w-full">
-                        <Scan className="w-4 h-4 mr-2" /> Capture photo
-                      </Button>
                     </div>
                   )}
                 </div>
@@ -431,7 +826,7 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
                       </div>
                       <p className="text-sm text-muted-foreground">Take a photo or upload the back of your card</p>
                       <div className="flex flex-wrap gap-2 justify-center">
-                        <Button type="button" variant="outline" size="sm" onClick={() => startCamera('environment').then(() => {})}>
+                        <Button type="button" variant="outline" size="sm" onClick={() => void openCameraFor('back', 'environment')}>
                           <Camera className="w-4 h-4 mr-2" /> Use camera
                         </Button>
                         <Label className="cursor-pointer">
@@ -441,15 +836,6 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
                           <Input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'back')} />
                         </Label>
                       </div>
-                    </div>
-                  )}
-                  {cameraStream && (
-                    <div className="mt-4 space-y-2">
-                      <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-48 rounded-lg bg-black border border-border" />
-                      <canvas ref={canvasRef} className="hidden" />
-                      <Button type="button" onClick={() => captureFromCamera('back')} className="w-full">
-                        <Scan className="w-4 h-4 mr-2" /> Capture photo
-                      </Button>
                     </div>
                   )}
                 </div>
@@ -515,8 +901,28 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
                 <div className="relative mx-auto w-72 h-72 rounded-full overflow-hidden bg-muted border-4 border-dashed border-primary/40">
                   {cameraStream ? (
                     <>
-                      <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover scale-x-[-1]" />
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
+                        style={{ filter: 'brightness(1.15) contrast(1.1) saturate(1.05)' }}
+                      />
                       <canvas ref={canvasRef} className="hidden" />
+                      {/* Passport-style guidance overlay (centered face, upright) */}
+                      <div className="absolute inset-0 pointer-events-none">
+                        <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-black/25" />
+                        {/* Silhouette-ish oval */}
+                        <div className="absolute left-1/2 top-[18%] -translate-x-1/2 w-[56%] h-[64%] rounded-[999px] border-2 border-white/55" />
+                        {/* Eye line */}
+                        <div className="absolute left-1/2 top-[38%] -translate-x-1/2 w-[58%] border-t border-white/35" />
+                        {/* Chin line */}
+                        <div className="absolute left-1/2 top-[72%] -translate-x-1/2 w-[44%] border-t border-white/25" />
+                        <div className="absolute bottom-3 left-0 right-0 text-center text-[11px] text-white/85 drop-shadow">
+                          Keep head upright. Center your face like a passport photo.
+                        </div>
+                      </div>
                       <div className="absolute inset-0 pointer-events-none rounded-full border-4 border-primary/40" />
                     </>
                   ) : (
@@ -529,8 +935,8 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
                 <div className="flex flex-col gap-2">
                   {!cameraStream ? (
                     <>
-                      <Button onClick={() => void startFacialRecognition()} className="w-full">
-                        <Camera className="w-4 h-4 mr-2" /> Start camera (recommended)
+                      <Button onClick={() => void openCameraFor('face', 'user')} className="w-full">
+                        <Camera className="w-4 h-4 mr-2" /> Open camera (recommended)
                       </Button>
                       <Label className="cursor-pointer text-center py-2 rounded-md border border-dashed border-border hover:bg-muted/50">
                         <span className="text-sm text-foreground">Upload a selfie instead (manual review required)</span>
@@ -547,6 +953,20 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
                       <Button onClick={captureSelfie} className="w-full">
                         <Scan className="w-4 h-4 mr-2" /> Capture selfie
                       </Button>
+                      <Label className="cursor-pointer text-center py-2 rounded-md border border-dashed border-border hover:bg-muted/50">
+                        <span className="text-sm text-foreground">Upload a selfie instead (manual review required)</span>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            stopCamera();
+                            handleFileUpload(file, 'face');
+                          }}
+                        />
+                      </Label>
                       <Button variant="ghost" onClick={stopCamera} className="text-muted-foreground">
                         Cancel
                       </Button>
@@ -598,21 +1018,6 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
                   </Alert>
                 )}
 
-                {faceScreeningDone && securityReportLines.length > 0 && (
-                  <Alert className="border-border bg-muted/40 text-left">
-                    <Shield className="h-4 w-4 text-primary" />
-                    <AlertTitle className="text-foreground text-sm">Security report (protocol prescreen)</AlertTitle>
-                    <AlertDescription className="text-foreground">
-                      <ul className="mt-2 list-disc pl-5 text-xs text-muted-foreground space-y-1">
-                        {securityReportLines.map((line, i) => (
-                          <li key={i} className="font-mono text-[11px] text-foreground">
-                            {line}
-                          </li>
-                        ))}
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-                )}
 
                 <div className="flex gap-2 justify-center flex-wrap">
                   <Button variant="outline" onClick={() => void retryFacialRecognition()} disabled={isProcessing}>
@@ -668,17 +1073,100 @@ export const GhanaCardVerification = ({ onVerificationComplete, userCountry }: G
       </CardContent>
     </Card>
 
-      <VerificationTimelineDialog
-        open={timelineOpen}
+      <Dialog
+        open={cameraDialogOpen}
         onOpenChange={(open) => {
-          setTimelineOpen(open);
-          if (!open && pendingSubmitPayload) {
-            onVerificationComplete(pendingSubmitPayload);
-            setPendingSubmitPayload(null);
-          }
+          setCameraDialogOpen(open);
+          if (!open) stopCamera();
         }}
-        context="ghana_card_submitted"
-      />
+      >
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>
+              {cameraTarget === 'face'
+                ? 'Live selfie'
+                : cameraTarget === 'front'
+                  ? `Front of ${cardName}`
+                  : `Back of ${cardName}`}
+            </DialogTitle>
+            <DialogDescription>
+              Allow camera permissions, then tap <strong>Take photo</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="relative overflow-hidden rounded-xl border border-border bg-black">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-[320px] object-cover"
+                style={{ filter: 'brightness(1.15) contrast(1.1) saturate(1.05)' }}
+              />
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={async () => {
+                  stopCamera();
+                  const next = cameraFacing === 'environment' ? 'user' : 'environment';
+                  setCameraFacing(next);
+                  await startCamera(next);
+                }}
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Switch camera
+              </Button>
+
+              <Button
+                type="button"
+                className="flex-1"
+                onClick={() => void captureFromCamera(cameraTarget)}
+                disabled={!cameraStream}
+              >
+                <Scan className="w-4 h-4 mr-2" />
+                Take photo
+              </Button>
+            </div>
+
+            <Label className="cursor-pointer text-center py-2 rounded-md border border-dashed border-border hover:bg-muted/50">
+              <span className="text-sm text-foreground">
+                Upload a photo instead
+                {cameraTarget === 'face' ? ' (manual review required)' : ''}
+              </span>
+              <Input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setCameraDialogOpen(false);
+                  stopCamera();
+                  handleFileUpload(file, cameraTarget);
+                }}
+              />
+            </Label>
+
+            {!cameraStream ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={async () => {
+                  await startCamera(cameraFacing);
+                }}
+              >
+                <Camera className="w-4 h-4 mr-2" />
+                Start camera
+              </Button>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

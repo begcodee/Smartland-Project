@@ -393,7 +393,16 @@ export const api = {
         createdAt: string;
         senderId: string;
         sender?: { id: string; name: string };
-        attachments?: Array<{ kind: 'image' | 'document'; name: string; mimeType: string; dataUrl: string }>;
+        attachments?: Array<{
+          kind: 'image' | 'document' | 'audio';
+          name: string;
+          mimeType: string;
+          dataUrl: string;
+          transcript?: string;
+          transcriptImmutable?: boolean;
+          auditHash?: string;
+          keywordFlags?: string[];
+        }>;
       }>;
     };
   },
@@ -401,7 +410,13 @@ export const api = {
   async sendConversationMessage(
     conversationId: string,
     body: string,
-    attachments?: Array<{ kind: 'image' | 'document'; name: string; mimeType: string; dataUrl: string }>
+    attachments?: Array<{
+      kind: 'image' | 'document' | 'audio';
+      name: string;
+      mimeType: string;
+      dataUrl: string;
+      transcript?: string;
+    }>
   ) {
     const r = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
       method: 'POST',
@@ -489,6 +504,18 @@ export const api = {
     const data = await r.json();
     if (!r.ok) throw new Error(data.message || 'Verification action failed');
     return data;
+  },
+
+  /** Demo helper: Admin only — force NIA verified so GLC approval can proceed */
+  async demoForceNiaVerified(userId: string) {
+    const r = await fetch(`${API_BASE}/verify/demo/force-nia/${encodeURIComponent(userId)}`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({})
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || data.message || 'Failed');
+    return data as { success: boolean; user: unknown };
   },
 
   async getNotifications() {
@@ -597,5 +624,53 @@ export const api = {
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Failed to delete law');
     return data as { ok: boolean };
+  },
+
+  /** Arbitrator: list active arbitration cases (neutral list by Parcel ID) */
+  async getArbitrationCases() {
+    const r = await fetch(`${API_BASE}/arbitration/cases`, { headers: headers() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || data.message || 'Failed');
+    return data as { success: boolean; cases: unknown[] };
+  },
+
+  /** Arbitrator: open official review (reveals full case file) */
+  async startArbitrationReview(parcelId: string) {
+    const r = await fetch(`${API_BASE}/arbitration/cases/${encodeURIComponent(parcelId)}/start-review`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({})
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || data.message || 'Failed');
+    return data;
+  },
+
+  /** Arbitrator: evidence vault (documents, protocols, chat logs) */
+  async getArbitrationEvidence(parcelId: string) {
+    const r = await fetch(`${API_BASE}/arbitration/cases/${encodeURIComponent(parcelId)}/evidence`, { headers: headers() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || data.message || 'Failed');
+    return data;
+  },
+
+  /** Arbitrator: take legal-grade action */
+  async arbitrationAction(
+    parcelId: string,
+    payload: {
+      action: 'dismiss' | 'permanent_lock' | 'corrective_transfer' | 'fraud_alert_blacklist';
+      note?: string;
+      toUserId?: string;
+      ghanaCardPin?: string;
+    }
+  ) {
+    const r = await fetch(`${API_BASE}/arbitration/cases/${encodeURIComponent(parcelId)}/action`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || data.message || 'Failed');
+    return data;
   }
 };

@@ -164,7 +164,8 @@ export function RegistrationReview() {
     const localUsers = getLocalPendingUsers();
     try {
       const res = await api.getPendingUsers();
-      if (res.success && Array.isArray(res.users) && res.users.length > 0) {
+      if (res.success && Array.isArray(res.users)) {
+        // Backend reachable: treat empty list as valid (Stage 2 "Split" gate).
         // Merge backend users with any locally registered ones (deduplicate by id)
         const backendIds = new Set((res.users as PendingUser[]).map((u) => u.id));
         const merged = [
@@ -174,7 +175,7 @@ export function RegistrationReview() {
         setPendingUsers(merged);
         setUsingMock(false);
       } else {
-        // Backend unavailable or empty — show local users + demo dummies as fallback
+        // Backend unavailable — show local users + demo dummies as fallback
         const dummyIds = new Set(localUsers.map((u) => u.id));
         const combined = [
           ...localUsers,
@@ -615,6 +616,52 @@ export function RegistrationReview() {
                     Grant Access
                   </Button>
                 </div>
+
+                {!canApprove(u) && (
+                  <div className="mt-3 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                    <p className="font-medium text-foreground mb-1">Blocked: NIA must verify first</p>
+                    <p className="mb-2">
+                      This is strict by design (rule-based). For demos, you can simulate NIA verification, then grant access.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => {
+                          // NIA dashboard is a separate role; this just navigates for convenience.
+                          window.location.href = '/nia';
+                        }}
+                      >
+                        Open NIA dashboard
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={busy}
+                        onClick={async () => {
+                          setLoadingId(u.id);
+                          try {
+                            await api.demoForceNiaVerified(u.id);
+                            toast.success('Demo: NIA set to verified', {
+                              description: 'You can now grant access from the Lands Commission dashboard.',
+                              duration: 6000,
+                            });
+                            await refresh();
+                          } catch (e) {
+                            toast.error(e instanceof Error ? e.message : 'Failed');
+                          } finally {
+                            setLoadingId(null);
+                          }
+                        }}
+                      >
+                        Simulate NIA verified (demo)
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </Card>
           );

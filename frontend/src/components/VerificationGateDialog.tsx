@@ -24,10 +24,13 @@ export function VerificationGateDialog() {
   const [step, setStep] = useState<'prompt' | 'verify'>('prompt');
   const [dismissed, setDismissed] = useState(false);
 
+  const alreadySubmitted = !!user?.idVerification || user?.niaStatus === 'pending' || user?.niaStatus === 'verified';
+
   const shouldShow =
     !!user &&
     RESTRICTED_ROLES.includes(user.role as typeof RESTRICTED_ROLES[number]) &&
     user.verificationStatus !== 'verified' &&
+    !alreadySubmitted &&
     !dismissed;
 
   const handleVerificationComplete = (data: VerificationData) => {
@@ -46,11 +49,9 @@ export function VerificationGateDialog() {
   const roleName = user!.role === 'seller' ? 'Seller' : 'Buyer';
 
   return (
-    <Dialog open modal>
+    <Dialog open modal={false}>
       <DialogContent
         className="max-w-lg bg-card border border-border shadow-2xl rounded-2xl p-0 overflow-hidden"
-        onInteractOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
         hideCloseButton={true}
       >
         {step === 'prompt' ? (
@@ -63,10 +64,10 @@ export function VerificationGateDialog() {
               <div>
                 <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
                   Verification Required
-                  <Badge variant="destructive" className="text-[10px] font-semibold px-2 py-0.5">Action blocked</Badge>
+                  <Badge variant="secondary" className="text-[10px] font-semibold px-2 py-0.5">Limited access</Badge>
                 </DialogTitle>
                 <DialogDescription className="text-muted-foreground text-sm mt-1">
-                  Your {roleName.toLowerCase()} account must be verified before you can perform any actions on the platform.
+                  You can browse listings and explore the platform, but {roleName.toLowerCase()} transactions and submissions are disabled until verification is complete.
                 </DialogDescription>
               </div>
             </div>
@@ -126,7 +127,7 @@ export function VerificationGateDialog() {
                 className="w-full h-9 text-sm text-muted-foreground hover:text-foreground"
                 onClick={() => setDismissed(true)}
               >
-                Remind me later — I understand I cannot take actions
+                Continue browsing — I’ll verify later
               </Button>
             </div>
           </>

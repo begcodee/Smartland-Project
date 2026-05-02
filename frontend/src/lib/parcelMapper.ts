@@ -3,6 +3,26 @@
  */
 import type { LandParcel } from './mockData';
 
+function defaultImagesForParcel(title: string, address: string): LandParcel['images'] {
+  const key = `${title} ${address}`.toLowerCase();
+  const pool = ['/images/land-1.jpg', '/images/land-2.jpg', '/images/land-3.jpg', '/images/land-4.jpg', '/images/land-5.jpg'];
+
+  // Stable tiny hash to spread defaults across the pool (demo-friendly).
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  const pick = pool[h % pool.length];
+
+  return [
+    {
+      id: `img_${Math.random().toString(16).slice(2)}`,
+      url: pick,
+      caption: 'Listing photo (demo)',
+      type: 'main',
+      uploadedAt: new Date().toISOString(),
+    },
+  ];
+}
+
 export function mapApiParcelToLandParcel(p: {
   id: string;
   title: string;
@@ -70,6 +90,13 @@ export function mapApiParcelToLandParcel(p: {
         };
   const priceVal = typeof p.price === 'number' ? p.price : typeof p.priceGhs === 'number' ? p.priceGhs : 0;
   const areaVal = typeof p.area === 'number' ? p.area : 0;
+  const rawImages = (p.images ?? []).map(img => ({
+    id: img.id,
+    url: img.url,
+    caption: img.caption ?? '',
+    type: (img.type as 'main' | 'aerial' | 'boundary' | 'interior' | 'exterior') ?? 'main',
+    uploadedAt: img.uploadedAt ?? new Date().toISOString()
+  }));
   return {
     id: p.id,
     title: p.title,
@@ -90,14 +117,10 @@ export function mapApiParcelToLandParcel(p: {
       uploadedAt: '',
       verificationStatus: d.verificationStatus as 'pending' | 'verified' | 'rejected' | undefined
     })),
-    documentsVerificationStatus: (p.documentsVerificationStatus as 'pending' | 'verified' | 'rejected') ?? 'pending',
-    images: (p.images ?? []).map(img => ({
-      id: img.id,
-      url: img.url,
-      caption: img.caption ?? '',
-      type: (img.type as 'main' | 'aerial' | 'boundary' | 'interior' | 'exterior') ?? 'main',
-      uploadedAt: img.uploadedAt ?? new Date().toISOString()
-    })),
+    // If backend doesn't provide a verification status, treat as "not specified"
+    // so UI can default to browse-visible parcels in demo mode.
+    documentsVerificationStatus: (p.documentsVerificationStatus as 'pending' | 'verified' | 'rejected' | undefined) ?? undefined,
+    images: rawImages.length ? rawImages : defaultImagesForParcel(p.title, loc.address),
     createdAt: p.createdAt,
     updatedAt: p.updatedAt ?? p.createdAt,
     type: (p.type as LandParcel['type']) ?? 'residential',

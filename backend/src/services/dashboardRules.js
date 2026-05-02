@@ -57,16 +57,14 @@ export const DASHBOARD_RULES = {
     allowed: [
       "PATCH /api/users/:id/verify",
       "GET /api/users/pending",
-      "GET /api/laws",
-      "POST/PATCH /api/laws (admin co-role)",
     ],
     blockingRules: ["Users with niaStatus !== verified cannot be approved"],
   },
 
   admin: {
     role: "admin",
-    narrative: "Supervisory Lands Commission / system admin — full oversight + laws registry.",
-    allowed: ["Inherits lands_commission + POST /api/parcels + law CRUD + red-flag clear"],
+    narrative: "Supervisory Lands Commission / system admin — full oversight of users, parcels, disputes and settlements.",
+    allowed: ["Inherits lands_commission + POST /api/parcels + red-flag clear"],
   },
 
   arbitrator: {

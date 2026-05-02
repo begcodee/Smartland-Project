@@ -21,14 +21,16 @@ function estimateDataUrlBytes(dataUrl) {
 
 router.get("/", authenticate, requireRole("lands_commission", "admin", "nia"), (_req, res) => {
   seedIfEmpty();
-  res.json({ success: true, users: Array.from(store.users.values()).map(publicUser) });
+  res.json({ success: true, users: Array.from(store.users.values()).map((u) => publicUser(u, _req.user)) });
 });
 
 router.get("/pending", authenticate, requireRole("lands_commission", "admin"), (_req, res) => {
   seedIfEmpty();
   const pending = Array.from(store.users.values())
-    .filter((u) => !u.verified)
-    .map(publicUser);
+    // Stage 2 gate: Lands Commission sees NOTHING until NIA has verified the applicant.
+    // (Focus on sellers for document legalization.)
+    .filter((u) => u.role === "seller" && !u.verified && u.niaStatus === "verified")
+    .map((u) => publicUser(u, _req.user));
   res.json({ success: true, users: pending });
 });
 
@@ -39,13 +41,63 @@ router.patch("/me", authenticate, (req, res) => {
   if (!me) return res.status(404).json({ error: "User not found" });
 
   const parsed = z
-    .object({ idVerification: z.unknown().optional() })
+    .object({
+      idVerification: z.unknown().optional(),
+      email: z.string().trim().toLowerCase().email().optional(),
+    })
     .safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid payload" });
 
+  // Allow user to change email (demo-friendly; used for notifications).
+  if (parsed.data.email && parsed.data.email !== String(me.email || "").toLowerCase()) {
+    const next = parsed.data.email;
+    const dup = Array.from(store.users.values()).find(
+      (u) => u.id !== me.id && String(u.email || "").toLowerCase() === next
+    );
+    if (dup) return res.status(409).json({ error: "Email already exists" });
+    const prev = me.email;
+    me.email = next;
+    audit(req, "user.email.updated", { previous: prev, next });
+  }
+
   if (parsed.data.idVerification !== undefined) {
+    // Database-guard behavior (prototype): prevent duplicate submissions by the same user
+    // once they have already submitted and are pending/verified.
+    if (me.idVerification && (me.niaStatus === "pending" || me.niaStatus === "verified")) {
+      return res.status(409).json({
+        error: "Verification already submitted",
+        niaStatus: me.niaStatus,
+      });
+    }
+
+    // Uniqueness guard (prototype version of a DB unique constraint):
+    // deny saving if this Ghana Card PIN is already linked to another user.
+    try {
+      const incoming = parsed.data.idVerification;
+      const gh = incoming?.ghanaCard?.cardNumber || incoming?.cardNumber;
+      if (gh) {
+        const normalized = String(gh).trim().toUpperCase();
+        const dup = Array.from(store.users.values()).find(
+          (u) =>
+            u.id !== me.id &&
+            String(u.idVerification?.ghanaCard?.cardNumber || u.idVerification?.cardNumber || "")
+              .trim()
+              .toUpperCase() === normalized
+        );
+        if (dup) {
+          return res.status(409).json({
+            error: "Ghana Card PIN already exists",
+            code: "UNIQUE_GHANA_CARD_PIN",
+          });
+        }
+      }
+    } catch {
+      // ignore parsing issues; normal save validation handles other cases
+    }
+
     me.idVerification = parsed.data.idVerification;
-    me.niaStatus = "pending";
+    // Don't regress NIA status after NIA has already verified the user.
+    if (me.niaStatus !== "verified") me.niaStatus = "pending";
 
     // Document-size mismatch flagging (declared size vs actual dataUrl size)
     try {
@@ -73,19 +125,7 @@ router.patch("/me", authenticate, (req, res) => {
       // ignore
     }
 
-    // Uniqueness check (flag if Ghana Card already linked elsewhere)
-    const gh = me.idVerification?.ghanaCard?.cardNumber || me.idVerification?.cardNumber;
-    if (gh) {
-      const normalized = String(gh).trim().toUpperCase();
-      const dup = Array.from(store.users.values()).find(
-        (u) => u.id !== me.id && String(u.idVerification?.ghanaCard?.cardNumber || u.idVerification?.cardNumber || "")
-          .trim()
-          .toUpperCase() === normalized
-      );
-      if (dup) {
-        me.idVerificationRiskFlag = "ghana_card_duplicate";
-      }
-    }
+    // Prototype keeps duplicate PIN as a hard error above.
 
     // Compute risk score snapshot (demo “KYC pipeline”)
     const userInput = {
@@ -130,7 +170,7 @@ router.patch("/me", authenticate, (req, res) => {
     }
   }
 
-  res.json({ success: true, user: publicUser(me) });
+  res.json({ success: true, user: publicUser(me, req.user) });
 });
 
 // Lands Commission admin approval (blocked until NIA verified)
@@ -169,7 +209,7 @@ router.patch("/:id/verify", authenticate, requireRole("lands_commission", "admin
       actionUrl: "/",
     });
     audit(req, "lands.verify_user.rejected", { targetUserId: target.id, reason: target.rejectionReason });
-    return res.json({ success: true, user: publicUser(target) });
+    return res.json({ success: true, user: publicUser(target, req.user) });
   }
 
   target.verified = true;
@@ -190,7 +230,7 @@ router.patch("/:id/verify", authenticate, requireRole("lands_commission", "admin
             : "/",
   });
   audit(req, "lands.verify_user.approved", { targetUserId: target.id });
-  res.json({ success: true, user: publicUser(target) });
+  res.json({ success: true, user: publicUser(target, req.user) });
 });
 
 export default router;

@@ -85,18 +85,8 @@ export interface LandParcel {
   };
   area: number;
   price: number; // Now in Ghana Cedis
-  status: 'available' | 'pending' | 'sold' | 'disputed' | 'locked_for_transaction';
+  status: 'available' | 'pending' | 'sold' | 'disputed';
   ownerId: string;
-  /** Red-flag model: automated settlement only when `clear`. */
-  registryClearance?: 'clear' | 'flagged';
-  redFlag?: {
-    code: string;
-    message?: string;
-    raisedAt?: string;
-    listedSellerId?: string;
-    recordedOwnerId?: string;
-    buyerId?: string;
-  } | null;
   documents: Array<{
     id: string;
     name: string;
@@ -327,14 +317,14 @@ export const mockLandParcels: LandParcel[] = [
     images: [
       {
         id: 'img1',
-        url: '/assets/property-1.jpg',
+        url: '/images/land-1.jpg',
         caption: 'Modern residential development with palm trees and contemporary architecture',
         type: 'main',
         uploadedAt: '2024-01-15T10:00:00Z'
       },
       {
         id: 'img2',
-        url: '/assets/property-2.jpg',
+        url: '/images/land-2.jpg',
         caption: 'Aerial view of the residential complex showing layout and surroundings',
         type: 'aerial',
         uploadedAt: '2024-01-15T10:05:00Z'
@@ -389,7 +379,7 @@ export const mockLandParcels: LandParcel[] = [
     images: [
       {
         id: 'img3',
-        url: '/assets/property-3.jpg',
+        url: '/images/land-3.jpg',
         caption: 'Commercial development area with modern infrastructure',
         type: 'main',
         uploadedAt: '2024-01-10T09:00:00Z'
@@ -439,7 +429,7 @@ export const mockLandParcels: LandParcel[] = [
     images: [
       {
         id: 'img4',
-        url: '/assets/property-4.jpg',
+        url: '/images/land-5.jpg',
         caption: 'Expansive agricultural land with fertile soil for farming',
         type: 'main',
         uploadedAt: '2024-01-05T11:00:00Z'
@@ -489,7 +479,7 @@ export const mockLandParcels: LandParcel[] = [
     images: [
       {
         id: 'img5',
-        url: '/assets/property-5.jpg',
+        url: '/images/land-4.jpg',
         caption: 'Beachfront property with direct ocean access and development potential',
         type: 'main',
         uploadedAt: '2024-01-12T14:00:00Z'

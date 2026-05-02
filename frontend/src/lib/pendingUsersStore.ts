@@ -22,7 +22,28 @@ export interface LocalPendingUser {
   createdAt: string;
 }
 
-const store: LocalPendingUser[] = [];
+const STORAGE_KEY = 'smartland_pending_users_v1';
+
+function readStore(): LocalPendingUser[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as LocalPendingUser[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStore(next: LocalPendingUser[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // ignore storage quota / private mode failures
+  }
+}
+
+const store: LocalPendingUser[] = readStore();
 
 export function addLocalPendingUser(user: {
   id: string;
@@ -47,6 +68,7 @@ export function addLocalPendingUser(user: {
     idVerification: null,
     createdAt: new Date().toISOString(),
   });
+  writeStore(store);
 }
 
 export function updateLocalPendingUserVerification(
@@ -56,12 +78,17 @@ export function updateLocalPendingUserVerification(
   const user = store.find((u) => u.id === userId);
   if (user) {
     user.idVerification = JSON.stringify(idVerification);
+    user.verificationStatus = 'pending';
+    writeStore(store);
   }
 }
 
 export function removeLocalPendingUser(userId: string) {
   const idx = store.findIndex((u) => u.id === userId);
-  if (idx !== -1) store.splice(idx, 1);
+  if (idx !== -1) {
+    store.splice(idx, 1);
+    writeStore(store);
+  }
 }
 
 export function getLocalPendingUsers(): LocalPendingUser[] {

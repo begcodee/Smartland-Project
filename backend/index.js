@@ -4,6 +4,16 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
+import { connectPostgres, closePool, getPool } from "./src/config/db.js";
+import { seedIfEmpty, store } from "./src/store.js";
+import {
+  ensureSnapshotTable,
+  hydrateStore,
+  loadStoreSnapshot,
+  saveStoreSnapshot,
+  startSnapshotScheduler,
+} from "./src/persistence/storeSnapshot.js";
+
 import authRoutes from "./src/routes/auth.js";
 import parcelRoutes from "./src/routes/parcels.js";
 import paymentRoutes from "./src/routes/payments.js";
@@ -16,73 +26,150 @@ import notificationRoutes from "./src/routes/notifications.js";
 import ratingRoutes from "./src/routes/ratings.js";
 import transferRoutes from "./src/routes/transfers.js";
 import lawRoutes from "./src/routes/laws.js";
+import arbitrationRoutes from "./src/routes/arbitration.js";
 
-const app = express();
+async function bootstrap() {
+  const pool = await connectPostgres();
+  if (pool) {
+    await ensureSnapshotTable(pool);
+    const snap = await loadStoreSnapshot(pool);
+    if (snap) {
+      const ok = hydrateStore(store, snap);
+      if (ok) console.log("[db] Restored application state from PostgreSQL snapshot.");
+      else console.warn("[db] Snapshot missing or unsupported version — using seeded / empty store.");
+    }
+  }
 
-app.disable("x-powered-by");
+  seedIfEmpty();
 
-app.use(
-  helmet({
-    // leave crossOriginResourcePolicy off for dev assets
-    crossOriginResourcePolicy: false,
-  })
-);
+  if (pool) {
+    await saveStoreSnapshot(pool, store);
+    const intervalMs = Number(process.env.DB_SNAPSHOT_INTERVAL_MS || 8000);
+    startSnapshotScheduler(pool, store, intervalMs);
+    console.log(`[db] Saving snapshot every ${intervalMs}ms + on shutdown.`);
 
-const limiter = rateLimit({
-  windowMs: 60_000,
-  limit: 120,
-  standardHeaders: "draft-7",
-  legacyHeaders: false,
-});
-app.use(limiter);
+    const shutdown = async () => {
+      console.log("[db] Flushing snapshot…");
+      await saveStoreSnapshot(pool, store);
+      await closePool();
+      process.exit(0);
+    };
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
+  }
 
-const allowedOrigins = new Set(
-  String(process.env.CORS_ORIGINS || process.env.FRONTEND_URL || "http://localhost:5173")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-);
+  const app = express();
 
-app.use(
-  cors({
-    origin(origin, cb) {
-      if (!origin) return cb(null, true);
-      if (allowedOrigins.has(origin)) return cb(null, true);
-      // Capacitor / Ionic WebView
-      if (String(origin).startsWith("capacitor://")) return cb(null, true);
-      if (String(origin).startsWith("ionic://")) return cb(null, true);
-      if (/^https:\/\/localhost(?::\d+)?$/.test(String(origin))) return cb(null, true);
-      return cb(new Error("CORS blocked"), false);
-    },
-    credentials: true,
-  })
-);
-app.use(express.json({ limit: "10mb" }));
+  app.disable("x-powered-by");
 
-// API compatible with frontend (`frontend/` Vite app)
-app.use("/api/auth", authRoutes);
-app.use("/api/parcels", parcelRoutes);
-app.use("/api/payments", paymentRoutes);
-app.use("/api/conversations", conversationRoutes);
-app.use("/api/nia", niaRoutes);
-app.use("/api/nia/employees", niaEmployeeRoutes);
-app.use("/api/verify", verifyRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/notifications", notificationRoutes);
-app.use("/api/ratings", ratingRoutes);
-app.use("/api/transfers", transferRoutes);
-app.use("/api/laws", lawRoutes);
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: false,
+    })
+  );
 
-app.get("/", (req, res) => {
-  res.send("SmartLand API running");
-});
+  const limiter = rateLimit({
+    windowMs: 60_000,
+    limit: 120,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+  });
+  app.use(limiter);
 
-app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "smartland-backend-github" });
-});
+  const allowedOrigins = new Set(
+    String(process.env.CORS_ORIGINS || process.env.FRONTEND_URL || "http://localhost:5173")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+  );
 
-const PORT = Number(process.env.PORT || 3001);
-const HOST = process.env.BIND_HOST || "0.0.0.0";
-app.listen(PORT, HOST, () => {
-  console.log(`SmartLand API listening on http://${HOST}:${PORT} (use LAN IP from phone/emulator)`);
+  function isAllowedWebViewOrigin(origin) {
+    try {
+      const u = new URL(String(origin));
+      if ((u.protocol === "capacitor:" || u.protocol === "ionic:") && u.hostname === "localhost") return true;
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  function isAllowedDevTunnelOrigin(origin) {
+    try {
+      const u = new URL(String(origin));
+      if (process.env.NODE_ENV === "production") return false;
+      if (u.protocol === "https:" && u.hostname.endsWith(".trycloudflare.com")) return true;
+      if (u.protocol === "https:" && u.hostname.endsWith(".ngrok-free.app")) return true;
+      if (u.protocol === "https:" && u.hostname.endsWith(".loca.lt")) return true;
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  app.use(
+    cors({
+      origin(origin, cb) {
+        if (!origin) return cb(null, true);
+        if (allowedOrigins.has(origin)) return cb(null, true);
+        if (isAllowedWebViewOrigin(origin)) return cb(null, true);
+        if (isAllowedDevTunnelOrigin(origin)) return cb(null, true);
+        if (/^https?:\/\/localhost(?::\d+)?$/.test(String(origin))) return cb(null, true);
+        return cb(new Error("CORS blocked"), false);
+      },
+      credentials: true,
+    })
+  );
+  app.use(express.json({ limit: "10mb" }));
+
+  app.use("/api/auth", authRoutes);
+  app.use("/api/parcels", parcelRoutes);
+  app.use("/api/payments", paymentRoutes);
+  app.use("/api/conversations", conversationRoutes);
+  app.use("/api/nia", niaRoutes);
+  app.use("/api/nia/employees", niaEmployeeRoutes);
+  app.use("/api/verify", verifyRoutes);
+  app.use("/api/users", userRoutes);
+  app.use("/api/notifications", notificationRoutes);
+  app.use("/api/ratings", ratingRoutes);
+  app.use("/api/transfers", transferRoutes);
+  app.use("/api/laws", lawRoutes);
+  app.use("/api/arbitration", arbitrationRoutes);
+
+  app.get("/", (_req, res) => {
+    res.send("SmartLand API running");
+  });
+
+  app.get("/health", async (_req, res) => {
+    const p = getPool();
+    let postgres = false;
+    if (p) {
+      try {
+        await p.query("SELECT 1");
+        postgres = true;
+      } catch {
+        postgres = false;
+      }
+    }
+    res.json({
+      ok: true,
+      service: "smartland-backend",
+      postgres,
+      snapshotPersistence: Boolean(p),
+    });
+  });
+
+  const PORT = Number(process.env.PORT || 3001);
+  const HOST = process.env.BIND_HOST || "0.0.0.0";
+  app.listen(PORT, HOST, () => {
+    console.log(`SmartLand API listening on http://${HOST}:${PORT} (use LAN IP from phone/emulator)`);
+  });
+
+  if (process.env.NODE_ENV !== "production") {
+    setInterval(() => {}, 1 << 30);
+  }
+}
+
+bootstrap().catch((err) => {
+  console.error(err);
+  process.exit(1);
 });

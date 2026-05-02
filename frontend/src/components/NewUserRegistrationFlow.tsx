@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,8 @@ import { SIGNUP_PENDING_DESCRIPTION, VERIFICATION_HOURS_RANGE } from '@/lib/veri
 
 type Role = UserType['role'];
 
+const REG_FORM_DRAFT_KEY = 'smartland_registration_form_draft_v1';
+
 const ROLE_OPTIONS: { value: Role; label: string; description: string }[] = [
   { value: 'buyer', label: 'Buyer / Investor', description: 'Search and purchase land parcels' },
   { value: 'seller', label: 'Seller (Landowner / Agent)', description: 'List and sell land parcels' },
@@ -31,22 +33,72 @@ interface NewUserRegistrationFlowProps {
   onBack: () => void;
 }
 
+const defaultFormData = {
+  name: '',
+  email: '',
+  phoneNumber: '',
+  role: 'buyer' as Role,
+  organization: '',
+  password: '',
+  confirmPassword: '',
+  staffId: '',
+};
+
+function readRegistrationDraft() {
+  try {
+    const raw = localStorage.getItem(REG_FORM_DRAFT_KEY);
+    if (!raw) return defaultFormData;
+    const p = JSON.parse(raw) as Record<string, unknown>;
+    const roleFromStore = p.role as Role | undefined;
+    const role = ROLE_OPTIONS.some((o) => o.value === roleFromStore) ? roleFromStore! : 'buyer';
+    return {
+      name: typeof p.name === 'string' ? p.name : '',
+      email: typeof p.email === 'string' ? p.email : '',
+      phoneNumber: typeof p.phoneNumber === 'string' ? p.phoneNumber : '',
+      role,
+      organization: typeof p.organization === 'string' ? p.organization : '',
+      password: '',
+      confirmPassword: '',
+      staffId: typeof p.staffId === 'string' ? p.staffId : '',
+    };
+  } catch {
+    return defaultFormData;
+  }
+}
+
 export function NewUserRegistrationFlow({ onSuccess, onBack }: NewUserRegistrationFlowProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [registeredUser, setRegisteredUser] = useState<UserType | null>(null);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phoneNumber: '',
-    role: 'buyer' as Role,
-    organization: '',
-    password: '',
-    confirmPassword: '',
-    staffId: '',
-  });
+  const [formData, setFormData] = useState(readRegistrationDraft);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        const safe = {
+          name: formData.name,
+          email: formData.email,
+          phoneNumber: formData.phoneNumber,
+          role: formData.role,
+          organization: formData.organization,
+          staffId: formData.staffId,
+        };
+        localStorage.setItem(REG_FORM_DRAFT_KEY, JSON.stringify(safe));
+      } catch {
+        // quota / private mode
+      }
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, [
+    formData.name,
+    formData.email,
+    formData.phoneNumber,
+    formData.role,
+    formData.organization,
+    formData.staffId,
+  ]);
 
   const canSubmit =
     formData.name.trim() &&
@@ -112,6 +164,12 @@ export function NewUserRegistrationFlow({ onSuccess, onBack }: NewUserRegistrati
         addLocalPendingUser(newUser);
       }
 
+      try {
+        localStorage.removeItem(REG_FORM_DRAFT_KEY);
+      } catch {
+        // ignore
+      }
+
       setRegisteredUser(newUser);
       setTimelineOpen(true);
       const apiDesc =
@@ -137,6 +195,9 @@ export function NewUserRegistrationFlow({ onSuccess, onBack }: NewUserRegistrati
         </CardTitle>
         <CardDescription className="text-muted-foreground">
           Fill in your basic details. Identity checks run through Ghana Lands Commission / NIA — you will get email updates (typically within {VERIFICATION_HOURS_RANGE}).
+          <span className="block mt-2 text-xs">
+            This form is saved automatically on this device until you register successfully — you can leave and continue later. Password fields are never stored; re-enter them when you return.
+          </span>
         </CardDescription>
       </CardHeader>
 

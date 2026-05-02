@@ -1,6 +1,6 @@
 import { DashboardLayout } from '@/components/DashboardLayout';
-import DisputeResolution from '@/components/DisputeResolution';
 import { FlaggedRegistryParcels } from '@/components/FlaggedRegistryParcels';
+import ArbitrationCaseManager from '@/components/ArbitrationCaseManager';
 
 export default function ArbitratorDashboard() {
   return (
@@ -11,7 +11,7 @@ export default function ArbitratorDashboard() {
     >
       <div className="space-y-6">
         <FlaggedRegistryParcels />
-        <DisputeResolution />
+        <ArbitrationCaseManager />
       </div>
     </DashboardLayout>
   );

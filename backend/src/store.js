@@ -29,9 +29,19 @@ export const store = {
   laws: [],
 };
 
+function isDemoSeedAllowed() {
+  if (process.env.SMARTLAND_SEED_DEMO_USERS === "true") return true;
+  return process.env.NODE_ENV !== "production";
+}
+
 export function seedIfEmpty() {
   if (store.users.size === 0) {
-  const demoPasswordHash = bcrypt.hashSync("Password123!", 10);
+    if (!isDemoSeedAllowed()) {
+      throw new Error(
+        "Demo users are disabled in production. Set SMARTLAND_SEED_DEMO_USERS=true only for an isolated demo environment."
+      );
+    }
+    const demoPasswordHash = bcrypt.hashSync("Password123!", 10);
 
   const admin = {
     id: id("user"),

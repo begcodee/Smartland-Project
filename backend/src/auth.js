@@ -1,7 +1,17 @@
 import jwt from "jsonwebtoken";
 import { seedIfEmpty, store, publicUser } from "./store.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
+const DEV_JWT_SECRET = "dev-secret-change-me";
+const PLACEHOLDER_SECRETS = new Set([DEV_JWT_SECRET, "change-me-in-production"]);
+
+if (
+  process.env.NODE_ENV === "production" &&
+  (!process.env.JWT_SECRET || PLACEHOLDER_SECRETS.has(process.env.JWT_SECRET))
+) {
+  throw new Error("JWT_SECRET must be set to a non-placeholder value in production");
+}
+
+const JWT_SECRET = process.env.JWT_SECRET || DEV_JWT_SECRET;
 if (!process.env.JWT_SECRET) {
   console.warn("[auth] JWT_SECRET not set; using insecure dev default");
 }

@@ -19,7 +19,7 @@
 
 Put the deployed address in the **backend** as `LAND_SALE_ANCHOR_CONTRACT_ADDRESS`. Use the **same** private key as `CHAIN_REGISTRAR_PRIVATE_KEY`, or deploy then `setRegistrar` to your backend key.
 
-## Backend env (see `workspace/backend/.env.example`)
+## Backend env (see `backend/.env.example`)
 
 - `CHAIN_RPC_URL` — e.g. Polygon Amoy HTTPS RPC  
 - `CHAIN_REGISTRAR_PRIVATE_KEY` — registrar wallet (must match contract `registrar`)  

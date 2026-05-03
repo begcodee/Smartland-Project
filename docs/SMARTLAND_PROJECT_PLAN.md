@@ -278,10 +278,10 @@ SmartLand treats **end users** (sellers, buyers, arbitrators) and **institutiona
 
 ## 11. References & Contacts
 
+- **SSI + Postgres + REST + frontend modules + chain (deliverable spec):** [`docs/SSI_BLOCKCHAIN_ARCHITECTURE_SPEC.md`](./SSI_BLOCKCHAIN_ARCHITECTURE_SPEC.md) — DDL, state machines, API tables, UI module map, `LandSaleAnchor` + optional evidence anchor.
 - **NIA (Ghana Card):** idverification@nia.gov.gh; [NIA verification services](https://nia.gov.gh/service/verification-services/).
 - **MTN MoMo:** [MoMo Developer Community](https://momodevelopercommunity.mtn.com); sandbox: momodeveloper.mtn.com.
 - **Polygon:** [docs.polygon.technology](https://docs.polygon.technology).
-- **SSI:** W3C Verifiable Credentials, DIDs; Veramo / Trinsic docs.
 
 ---
 

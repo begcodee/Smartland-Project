@@ -1,48 +1,63 @@
+# Dependencies & builds
 node_modules/
+**/node_modules/
 dist/
+**/dist/
+dist-ssr/
 build/
+**/build/
 out/
+coverage/
+*.local
+
+# Secrets — never commit
+.env
+**/.env
+.env.*
+!.env.example
+
+# Logs & caches
+*.log
+npm-debug.log*
+.yarn/
+.vite_opt_cache/
+.temp/
+*.tmp
+logs/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+Desktop.ini
+ehthumbs.db
+
+# Tool / local artifacts
+.storage/
+# Old nested layout (delete locally after stopping dev servers if it remains)
+workspace/
+.MGXTools/
+.MGXEnv.json
+.timeline.json
+.wiki.md
+*.exe
+cover/
+
+# Native / misc
 bin/
 obj/
 *.o
-*.exe
-*.log
-logs/
-.env
-.env.local
-.env.production
-.env.development
-env/
-venv/
-ENV/
-.DS_Store
-.idea/
-*.iml
-.vscode/
-.vscode/extensions.json
-.temp/
-*.tmp
-coverage/
-*.db
-**/prisma/dev.db
 CMakeFiles/
 CMakeCache.txt
-yarn-error.log
-npm-debug.log
-*~
-*.bak
-*.swp
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-*.local
+*.iml
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 .sass-cache/
-.vite_opt_cache/
 test-results/
 *.coverage
 *.lcov
@@ -50,4 +65,15 @@ test-results/
 *.code-workspace
 pnpm-lock.yaml
 *.pyc
-__pycache__
+__pycache__/
+
+# Databases & uploads (runtime)
+*.db
+**/prisma/dev.db
+uploads/*
+!uploads/.gitkeep
+
+# Python
+venv/
+env/
+ENV/

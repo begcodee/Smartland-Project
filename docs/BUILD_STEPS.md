@@ -32,7 +32,7 @@ This document tracks the build order. Each step is scoped so we can build increm
 
 ## Step 3 — Backend scaffold
 
-- [ ] Node + TypeScript API (Express or Fastify) in `workspace/backend` or `workspace/api`.
+- [ ] Node + TypeScript API (Express or Fastify) in `backend/` (or a dedicated `api/` package).
 - [ ] PostgreSQL schema: users (id, email, role, ghana_card_verified, etc.), parcels, disputes, audit_log.
 - [ ] Auth API: register, login, refresh; JWT with role claim.
 - [ ] Frontend: call API for login/register instead of mock only; store token.
@@ -43,7 +43,7 @@ This document tracks the build order. Each step is scoped so we can build increm
 
 ## Step 4 — Smart contracts (Polygon testnet)
 
-- [ ] Hardhat project in `workspace/contracts` (or repo root).
+- [ ] Hardhat project in `contracts/` (this repo).
 - [ ] Contracts: `AccessControl` (roles), `LandRegistry` (parcel id, owner, title hash), `Escrow` (lock/release/refund).
 - [ ] Deploy to Polygon Amoy testnet; backend or frontend read from contract (owner, status).
 - [ ] Optional: `DisputeResolution` contract stub.

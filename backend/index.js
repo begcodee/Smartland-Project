@@ -113,13 +113,15 @@ async function bootstrap() {
         if (allowedOrigins.has(origin)) return cb(null, true);
         if (isAllowedWebViewOrigin(origin)) return cb(null, true);
         if (isAllowedDevTunnelOrigin(origin)) return cb(null, true);
-        if (/^https?:\/\/localhost(?::\d+)?$/.test(String(origin))) return cb(null, true);
+        const o = String(origin);
+        if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(o)) return cb(null, true);
+        if (/^https?:\/\/\[::1\](:\d+)?$/i.test(o)) return cb(null, true);
         return cb(new Error("CORS blocked"), false);
       },
       credentials: true,
     })
   );
-  app.use(express.json({ limit: "10mb" }));
+  app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "50mb" }));
 
   app.use("/api/auth", authRoutes);
   app.use("/api/parcels", parcelRoutes);

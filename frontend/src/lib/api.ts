@@ -2,7 +2,7 @@
  * SmartLand API client — connects frontend to backend
  */
 
-import { API_BASE } from './apiBase';
+import { API_BASE, healthCheckUrl } from './apiBase';
 
 function getToken(): string | null {
   return localStorage.getItem('smartland_token');
@@ -43,7 +43,7 @@ export type LawPayload = {
 
 export const api = {
   async health() {
-    const r = await fetch(API_BASE.replace('/api', '') + '/health');
+    const r = await fetch(healthCheckUrl());
     return r.json();
   },
 
@@ -190,13 +190,38 @@ export const api = {
 
   /** Persist Ghana Card submission; user remains pending until admin approves */
   async saveIdVerification(idVerification: Record<string, unknown>) {
-    const r = await fetch(`${API_BASE}/users/me`, {
-      method: 'PATCH',
-      headers: headers(),
-      body: JSON.stringify({ idVerification })
-    });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.message || 'Failed to save verification');
+    let r: Response;
+    try {
+      r = await fetch(`${API_BASE}/users/me`, {
+        method: 'PATCH',
+        headers: headers(),
+        body: JSON.stringify({ idVerification })
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/failed to fetch|networkerror|load failed|network request failed/i.test(msg)) {
+        throw new Error(
+          'Cannot reach the SmartLand API. Start the backend (port 3001), then retry. If you use a custom URL, set VITE_API_URL.'
+        );
+      }
+      throw e;
+    }
+    const ct = r.headers.get('content-type') || '';
+    let data: Record<string, unknown> = {};
+    if (ct.includes('application/json')) {
+      try {
+        data = (await r.json()) as Record<string, unknown>;
+      } catch {
+        data = {};
+      }
+    }
+    if (!r.ok) {
+      const errMsg =
+        (typeof data.message === 'string' && data.message) ||
+        (typeof data.error === 'string' && data.error) ||
+        `Request failed (${r.status})`;
+      throw new Error(errMsg);
+    }
     return data;
   },
 

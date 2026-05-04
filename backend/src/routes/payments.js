@@ -290,6 +290,9 @@ router.get("/verify", authenticate, async (req, res) => {
 
   const existing = store.payments.get(ref);
   if (!existing) return res.status(404).json({ error: "Payment not found" });
+  if (String(existing.buyerId) !== String(req.user.id)) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
 
   try {
     let verified;

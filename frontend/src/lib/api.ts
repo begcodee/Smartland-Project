@@ -15,18 +15,27 @@ function headers(includeAuth = true): Record<string, string> {
   return h;
 }
 
-async function readJson(r: Response): Promise<any> {
+type ApiJson = Record<string, unknown> & {
+  error?: string;
+  message?: string;
+  success?: boolean;
+  token?: string;
+  user?: Record<string, unknown>;
+};
+
+async function readJson(r: Response): Promise<ApiJson> {
   try {
-    return await r.json();
+    const data = await r.json();
+    return data && typeof data === 'object' ? data as ApiJson : {};
   } catch {
     return {};
   }
 }
 
-function responseError(data: any, fallback: string, status: number) {
+function responseError(data: ApiJson, fallback: string, status: number) {
   const message =
-    (typeof data?.message === 'string' && data.message) ||
-    (typeof data?.error === 'string' && data.error) ||
+    (typeof data.message === 'string' && data.message) ||
+    (typeof data.error === 'string' && data.error) ||
     fallback;
   return Object.assign(new Error(message), { status });
 }

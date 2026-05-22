@@ -18,6 +18,8 @@ const registerSchema = z.object({
   arbitratorRegNo: z.string().trim().min(2).max(50).optional().nullable(),
 });
 
+const PUBLIC_REGISTRATION_ROLES = new Set(["buyer", "seller"]);
+
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(1).max(200),
@@ -30,8 +32,10 @@ router.post("/register", async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
   }
-  const { name, email, password, phoneNumber, organization, staffId, arbitratorRegNo } = parsed.data;
-  const role = parsed.data.role === "admin" ? "lands_commission" : parsed.data.role;
+  const { name, email, password, phoneNumber, organization, staffId, arbitratorRegNo, role } = parsed.data;
+  if (!PUBLIC_REGISTRATION_ROLES.has(role)) {
+    return res.status(403).json({ error: "Staff and authority accounts must be provisioned by an existing administrator" });
+  }
 
   const normalizedEmail = email;
   const existing = Array.from(store.users.values()).find(

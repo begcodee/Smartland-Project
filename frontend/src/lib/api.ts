@@ -15,6 +15,31 @@ function headers(includeAuth = true): Record<string, string> {
   return h;
 }
 
+async function readJson(r: Response): Promise<any> {
+  try {
+    return await r.json();
+  } catch {
+    return {};
+  }
+}
+
+function responseError(data: any, fallback: string, status: number) {
+  const message =
+    (typeof data?.message === 'string' && data.message) ||
+    (typeof data?.error === 'string' && data.error) ||
+    fallback;
+  return Object.assign(new Error(message), { status });
+}
+
+export function shouldUseOfflineAuthFallback(error: unknown): boolean {
+  const status = typeof (error as { status?: unknown })?.status === 'number'
+    ? (error as { status: number }).status
+    : undefined;
+  if (typeof status === 'number') return status >= 500;
+  const message = error instanceof Error ? error.message : String(error);
+  return /failed to fetch|networkerror|load failed|network request failed/i.test(message);
+}
+
 export type LawCategory = 'registration' | 'transfer' | 'dispute' | 'environmental' | 'general';
 export type LawStatus = 'draft' | 'active';
 
@@ -62,8 +87,8 @@ export const api = {
       headers: headers(false),
       body: JSON.stringify(payload)
     });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.message || 'Registration failed');
+    const data = await readJson(r);
+    if (!r.ok) throw responseError(data, 'Registration failed', r.status);
     if (data.token) localStorage.setItem('smartland_token', data.token);
     return data;
   },
@@ -74,8 +99,8 @@ export const api = {
       headers: headers(false),
       body: JSON.stringify({ email, password, role, staffId, arbitratorRegNo })
     });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.message || 'Login failed');
+    const data = await readJson(r);
+    if (!r.ok) throw responseError(data, 'Login failed', r.status);
     if (data.token) localStorage.setItem('smartland_token', data.token);
     return data;
   },

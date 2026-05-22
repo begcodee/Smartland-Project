@@ -44,7 +44,7 @@ export function shouldUseOfflineAuthFallback(error: unknown): boolean {
   const status = typeof (error as { status?: unknown })?.status === 'number'
     ? (error as { status: number }).status
     : undefined;
-  if (typeof status === 'number') return status >= 500;
+  if (typeof status === 'number') return false;
   const message = error instanceof Error ? error.message : String(error);
   return /failed to fetch|networkerror|load failed|network request failed/i.test(message);
 }

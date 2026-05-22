@@ -15,7 +15,7 @@ import { NewUserRegistrationFlow } from '@/components/NewUserRegistrationFlow';
 import { useAuth, ROLE_DASHBOARD } from '@/contexts/AuthContext';
 import { mockUsers } from '@/lib/mockData';
 import type { User } from '@/lib/mockData';
-import { api } from '@/lib/api';
+import { api, shouldUseOfflineAuthFallback } from '@/lib/api';
 import { shouldForceBuyerSellerVerificationRoute } from '@/lib/verificationRouting';
 
 type Role = User['role'];
@@ -153,8 +153,12 @@ export default function Index() {
         toast.success(`Akwaaba, ${firstName}!`);
         return;
       }
-    } catch {
-      /* fall back to mock */
+    } catch (err) {
+      if (!shouldUseOfflineAuthFallback(err)) {
+        toast.error(err instanceof Error ? err.message : 'Login failed');
+        setIsLoading(false);
+        return;
+      }
     }
     await new Promise(r => setTimeout(r, 600));
     mockUser = mockUsers.find(u => u.email === email) || null;

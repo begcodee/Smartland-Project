@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { User as UserType } from '@/lib/mockData';
-import { api } from '@/lib/api';
+import { api, shouldUseOfflineAuthFallback } from '@/lib/api';
 import { addLocalPendingUser } from '@/lib/pendingUsersStore';
 import { VerificationTimelineDialog } from '@/components/VerificationTimelineDialog';
 import { SIGNUP_PENDING_DESCRIPTION, VERIFICATION_HOURS_RANGE } from '@/lib/verificationMessaging';
@@ -146,6 +146,14 @@ export function NewUserRegistrationFlow({ onSuccess, onBack }: NewUserRegistrati
         const apiMsg = apiErr instanceof Error ? apiErr.message : '';
         if (/already exists/i.test(apiMsg)) {
           toast.error('An account with this email already exists. Please sign in.');
+          return;
+        }
+        if (!shouldUseOfflineAuthFallback(apiErr)) {
+          toast.error(apiMsg || 'Registration failed. Please check your details and try again.');
+          return;
+        }
+        if (formData.role !== 'buyer' && formData.role !== 'seller') {
+          toast.error('Staff and authority accounts must be provisioned by an existing administrator.');
           return;
         }
         // Fallback: create local pending user if backend is unreachable

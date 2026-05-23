@@ -87,6 +87,12 @@ export interface LandParcel {
   price: number; // Now in Ghana Cedis
   status: 'available' | 'pending' | 'sold' | 'disputed';
   ownerId: string;
+  seller?: {
+    id: string;
+    name?: string;
+    email?: string;
+    verified?: boolean;
+  } | null;
   documents: Array<{
     id: string;
     name: string;

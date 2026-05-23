@@ -36,7 +36,7 @@ async function bootstrap() {
     if (snap) {
       const ok = hydrateStore(store, snap);
       if (ok) console.log("[db] Restored application state from PostgreSQL snapshot.");
-      else console.warn("[db] Snapshot missing or unsupported version — using seeded / empty store.");
+      else throw new Error("[db] Snapshot missing or unsupported version; refusing to seed over persisted state.");
     }
   }
 

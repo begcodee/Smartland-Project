@@ -131,10 +131,38 @@ function raiseParcelRedFlag(req, parcel, { buyerId, engine, evaluation, source }
   }
 }
 
-function toPesewas(amountGhs) {
+export function toPesewas(amountGhs) {
   const n = Number(amountGhs);
   if (!Number.isFinite(n) || n <= 0) throw new Error("Invalid amountGhs");
   return Math.round(n * 100);
+}
+
+export function validateCheckoutAmount(parcel, requestedAmountGhs) {
+  const expectedAmountPesewas = toPesewas(parcel?.priceGhs);
+  if (requestedAmountGhs === undefined) return expectedAmountPesewas;
+
+  const requestedAmountPesewas = toPesewas(requestedAmountGhs);
+  if (requestedAmountPesewas !== expectedAmountPesewas) {
+    const err = new Error("Payment amount must match parcel price");
+    err.status = 400;
+    err.expectedAmountPesewas = expectedAmountPesewas;
+    err.requestedAmountPesewas = requestedAmountPesewas;
+    throw err;
+  }
+  return expectedAmountPesewas;
+}
+
+export function releaseExpiredTransactionLock(parcel, now = Date.now()) {
+  if (
+    parcel?.status === "locked_for_transaction" &&
+    parcel.lockedUntil &&
+    now >= parcel.lockedUntil
+  ) {
+    parcel.status = "available";
+    parcel.lockedUntil = null;
+    return true;
+  }
+  return false;
 }
 
 router.post("/initialize", authenticate, async (req, res) => {
@@ -155,6 +183,19 @@ router.post("/initialize", authenticate, async (req, res) => {
 
   const parcel = store.parcels.get(parcelId);
   if (!parcel) return res.status(404).json({ error: "Parcel not found" });
+
+  releaseExpiredTransactionLock(parcel);
+
+  let amountPesewas;
+  try {
+    amountPesewas = validateCheckoutAmount(parcel, amountGhs);
+  } catch (e) {
+    return res.status(e.status || 400).json({
+      error: e.message,
+      expectedAmountPesewas: e.expectedAmountPesewas,
+      requestedAmountPesewas: e.requestedAmountPesewas,
+    });
+  }
 
   // Conflict-prevention engine (pre-dispute layer): evaluate BEFORE locking/checkout
   const engine = new LandConflictEngine(store);
@@ -192,6 +233,7 @@ router.post("/initialize", authenticate, async (req, res) => {
     });
   }
   const now = Date.now();
+  releaseExpiredTransactionLock(parcel, now);
   if (parcel.lockedUntil && now < parcel.lockedUntil) {
     return res.status(409).json({ error: "Parcel is locked for another transaction. Try again shortly." });
   }
@@ -201,16 +243,9 @@ router.post("/initialize", authenticate, async (req, res) => {
 
   // Transaction locking mechanism (prevents parallel/double sale)
   const lockMs = Number(process.env.TRANSACTION_LOCK_MS || 15 * 60_000);
+  const lockUntil = now + lockMs;
   parcel.status = "locked_for_transaction";
-  parcel.lockedUntil = now + lockMs;
-
-  const amount = amountGhs ?? parcel.priceGhs;
-  let amountPesewas;
-  try {
-    amountPesewas = toPesewas(amount);
-  } catch (e) {
-    return res.status(400).json({ error: e.message });
-  }
+  parcel.lockedUntil = lockUntil;
 
   const channels =
     channel === "bank"
@@ -277,6 +312,10 @@ router.post("/initialize", authenticate, async (req, res) => {
         demo: true,
       });
     }
+    if (parcel.status === "locked_for_transaction" && parcel.lockedUntil === lockUntil) {
+      parcel.status = "available";
+      parcel.lockedUntil = null;
+    }
     res.status(500).json({ error: e.message || "Failed to initialize payment" });
   }
 });
@@ -307,6 +346,39 @@ router.get("/verify", authenticate, async (req, res) => {
       const parcel = store.parcels.get(existing.parcelId);
       let transferCreatedOrFound = null;
       if (parcel && (parcel.status === "available" || parcel.status === "locked_for_transaction")) {
+        const expectedAmountPesewas = validateCheckoutAmount(parcel);
+        if (existing.amountPesewas !== expectedAmountPesewas) {
+          existing.status = "success_amount_mismatch";
+          if (parcel.status === "locked_for_transaction") {
+            parcel.status = "available";
+            parcel.lockedUntil = null;
+          }
+          audit(req, "payment.verify.amount_mismatch", {
+            reference: ref,
+            parcelId: parcel.id,
+            buyerId: existing.buyerId,
+            expectedAmountPesewas,
+            paidAmountPesewas: existing.amountPesewas,
+          });
+          return res.status(409).json({
+            success: false,
+            status: existing.status,
+            message: "Payment verified but amount does not match the parcel price. Registry settlement was blocked.",
+            payment: {
+              reference: ref,
+              status: existing.status,
+              landParcelId: existing.parcelId,
+              buyerId: existing.buyerId,
+              amountPesewas: existing.amountPesewas,
+              currency: existing.currency,
+            },
+            expectedAmountPesewas,
+            paidAmountPesewas: existing.amountPesewas,
+            transfer: null,
+            blocked: true,
+          });
+        }
+
         const settleEngine = new LandConflictEngine(store);
         const settlementEval = await settleEngine.evaluateTransaction({
           parcel_id: parcel.id,

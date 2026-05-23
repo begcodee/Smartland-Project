@@ -41,7 +41,7 @@ export function mapApiParcelToLandParcel(p: {
   createdAt: string;
   updatedAt?: string;
   owner?: { id: string; name: string; email: string };
-  seller?: { id: string; name?: string; email?: string };
+  seller?: { id: string; name?: string; email?: string; verified?: boolean };
   documents?: Array<{
     id: string;
     name: string;
@@ -106,6 +106,14 @@ export function mapApiParcelToLandParcel(p: {
     price: priceVal,
     status: (p.status as LandParcel['status']) ?? 'available',
     ownerId: p.ownerId ?? p.sellerId ?? '',
+    seller: p.seller
+      ? {
+          id: p.seller.id,
+          name: p.seller.name,
+          email: p.seller.email,
+          verified: Boolean(p.seller.verified),
+        }
+      : null,
     registryClearance: p.registryClearance ?? 'clear',
     redFlag: p.redFlag ?? null,
     owner: p.owner?.name ?? p.seller?.name ?? 'Unknown',

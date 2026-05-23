@@ -6,6 +6,7 @@ import { seedIfEmpty, store, publicUser } from "../store.js";
 import { signToken, authenticate } from "../auth.js";
 
 const router = express.Router();
+const SELF_SERVICE_ROLES = new Set(["buyer", "seller"]);
 
 const registerSchema = z.object({
   name: z.string().trim().min(2).max(100),
@@ -32,6 +33,11 @@ router.post("/register", async (req, res) => {
   }
   const { name, email, password, phoneNumber, organization, staffId, arbitratorRegNo } = parsed.data;
   const role = parsed.data.role === "admin" ? "lands_commission" : parsed.data.role;
+  if (!SELF_SERVICE_ROLES.has(role)) {
+    return res.status(403).json({
+      error: "Privileged accounts must be provisioned by an administrator.",
+    });
+  }
 
   const normalizedEmail = email;
   const existing = Array.from(store.users.values()).find(

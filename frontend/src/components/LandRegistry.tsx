@@ -172,7 +172,7 @@ export const LandRegistry = ({ currentUser }: LandRegistryProps) => {
       parcel.status === 'available';
     const isVerified = parcel.documentsVerificationStatus === 'verified' || !parcel.documentsVerificationStatus;
     // Stage 2: a parcel is "live" for buyers only after Lands Commission approves the seller.
-    const sellerApproved = Boolean((parcel as any)?.seller?.verified);
+    const sellerApproved = Boolean(parcel.seller?.verified);
     const isOwn = currentUser?.role === 'seller' && parcel.ownerId === currentUser?.id;
     const isAdmin = currentUser?.role === 'admin';
     // New / restricted users should still be able to browse parcels.

@@ -7,6 +7,23 @@ const SNAPSHOT_VERSION = 1;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+export function isSupportedSnapshot(data) {
+  return Boolean(data && data.version === SNAPSHOT_VERSION);
+}
+
+export function assertSupportedSnapshot(data) {
+  if (isSupportedSnapshot(data)) return;
+
+  const hasVersion =
+    data &&
+    typeof data === "object" &&
+    Object.prototype.hasOwnProperty.call(data, "version");
+  const found = hasVersion ? JSON.stringify(data.version) : "missing";
+  throw new Error(
+    `Unsupported SmartLand snapshot version (${found}); refusing to seed and overwrite persisted state.`
+  );
+}
+
 export function serializeStore(store) {
   return {
     version: SNAPSHOT_VERSION,
@@ -28,7 +45,7 @@ export function serializeStore(store) {
 }
 
 export function hydrateStore(store, data) {
-  if (!data || data.version !== SNAPSHOT_VERSION) return false;
+  if (!isSupportedSnapshot(data)) return false;
 
   store.users.clear();
   store.parcels.clear();

@@ -24,8 +24,6 @@ const REG_FORM_DRAFT_KEY = 'smartland_registration_form_draft_v1';
 const ROLE_OPTIONS: { value: Role; label: string; description: string }[] = [
   { value: 'buyer', label: 'Buyer / Investor', description: 'Search and purchase land parcels' },
   { value: 'seller', label: 'Seller (Landowner / Agent)', description: 'List and sell land parcels' },
-  { value: 'admin', label: 'Admin (Ghana Lands Commission)', description: 'Oversee registry and users' },
-  { value: 'nia', label: 'NIA Employee', description: 'Verify Ghana Card submissions and staff identity' },
 ];
 
 interface NewUserRegistrationFlowProps {

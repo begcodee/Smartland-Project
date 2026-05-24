@@ -7,6 +7,7 @@ import rateLimit from "express-rate-limit";
 import { connectPostgres, closePool, getPool } from "./src/config/db.js";
 import { seedIfEmpty, store } from "./src/store.js";
 import {
+  assertSupportedSnapshot,
   ensureSnapshotTable,
   hydrateStore,
   loadStoreSnapshot,
@@ -34,9 +35,9 @@ async function bootstrap() {
     await ensureSnapshotTable(pool);
     const snap = await loadStoreSnapshot(pool);
     if (snap) {
-      const ok = hydrateStore(store, snap);
-      if (ok) console.log("[db] Restored application state from PostgreSQL snapshot.");
-      else console.warn("[db] Snapshot missing or unsupported version — using seeded / empty store.");
+      assertSupportedSnapshot(snap);
+      hydrateStore(store, snap);
+      console.log("[db] Restored application state from PostgreSQL snapshot.");
     }
   }
 

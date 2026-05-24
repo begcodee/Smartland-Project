@@ -7,11 +7,13 @@ import { signToken, authenticate } from "../auth.js";
 
 const router = express.Router();
 
-const registerSchema = z.object({
+export const SELF_SERVICE_REGISTRATION_ROLES = ["buyer", "seller"];
+
+export const registerSchema = z.object({
   name: z.string().trim().min(2).max(100),
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(8).max(200),
-  role: z.enum(["buyer", "seller", "lands_commission", "admin", "arbitrator", "nia"]),
+  role: z.enum(SELF_SERVICE_REGISTRATION_ROLES),
   phoneNumber: z.string().trim().min(7).max(40).optional().nullable(),
   organization: z.string().trim().min(2).max(200).optional().nullable(),
   staffId: z.string().trim().min(2).max(50).optional().nullable(),
@@ -31,7 +33,7 @@ router.post("/register", async (req, res) => {
     return res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
   }
   const { name, email, password, phoneNumber, organization, staffId, arbitratorRegNo } = parsed.data;
-  const role = parsed.data.role === "admin" ? "lands_commission" : parsed.data.role;
+  const role = parsed.data.role;
 
   const normalizedEmail = email;
   const existing = Array.from(store.users.values()).find(

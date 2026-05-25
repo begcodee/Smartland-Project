@@ -86,7 +86,7 @@ describe("auth registration", () => {
 
   it("allows public registration for buyer and seller accounts", async () => {
     for (const role of ["buyer", "seller"]) {
-      const email = `${role}@example.com`;
+      const email = `public-${role}@example.test`;
       const res = await postJson(`${baseUrl}/api/auth/register`, {
         name: `${role} User`,
         email,

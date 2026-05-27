@@ -137,6 +137,18 @@ function toPesewas(amountGhs) {
   return Math.round(n * 100);
 }
 
+function findTransferByReference(reference) {
+  return Array.from(store.transfers.values()).find((t) => t.paystackReference === reference) || null;
+}
+
+function releasePaymentLock(parcel, payment) {
+  if (!parcel || parcel.lockedPaymentReference !== payment.reference) return;
+  if (parcel.status === "locked_for_transaction") parcel.status = "available";
+  parcel.lockedUntil = null;
+  parcel.lockedPaymentReference = null;
+  parcel.lockedBuyerId = null;
+}
+
 router.post("/initialize", authenticate, async (req, res) => {
   seedIfEmpty();
 
@@ -155,6 +167,16 @@ router.post("/initialize", authenticate, async (req, res) => {
 
   const parcel = store.parcels.get(parcelId);
   if (!parcel) return res.status(404).json({ error: "Parcel not found" });
+
+  let amountPesewas;
+  try {
+    amountPesewas = toPesewas(parcel.priceGhs);
+    if (amountGhs !== undefined && toPesewas(amountGhs) !== amountPesewas) {
+      return res.status(400).json({ error: "Payment amount must match parcel price" });
+    }
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
 
   // Conflict-prevention engine (pre-dispute layer): evaluate BEFORE locking/checkout
   const engine = new LandConflictEngine(store);
@@ -203,14 +225,8 @@ router.post("/initialize", authenticate, async (req, res) => {
   const lockMs = Number(process.env.TRANSACTION_LOCK_MS || 15 * 60_000);
   parcel.status = "locked_for_transaction";
   parcel.lockedUntil = now + lockMs;
-
-  const amount = amountGhs ?? parcel.priceGhs;
-  let amountPesewas;
-  try {
-    amountPesewas = toPesewas(amount);
-  } catch (e) {
-    return res.status(400).json({ error: e.message });
-  }
+  parcel.lockedBuyerId = String(req.user.id);
+  parcel.lockedPaymentReference = null;
 
   const channels =
     channel === "bank"
@@ -237,6 +253,8 @@ router.post("/initialize", authenticate, async (req, res) => {
       callback_url,
     });
 
+    parcel.lockedPaymentReference = data.reference;
+
     const payment = {
       reference: data.reference,
       status: "pending",
@@ -258,6 +276,7 @@ router.post("/initialize", authenticate, async (req, res) => {
     // Demo fallback when Paystack isn't configured
     if (!process.env.PAYSTACK_SECRET_KEY) {
       const reference = `DEMO_${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
+      parcel.lockedPaymentReference = reference;
       store.payments.set(reference, {
         reference,
         status: "success",
@@ -277,6 +296,16 @@ router.post("/initialize", authenticate, async (req, res) => {
         demo: true,
       });
     }
+    if (
+      parcel.status === "locked_for_transaction" &&
+      parcel.lockedBuyerId === String(req.user.id) &&
+      parcel.lockedPaymentReference === null
+    ) {
+      parcel.status = "available";
+      parcel.lockedUntil = null;
+      parcel.lockedBuyerId = null;
+      parcel.lockedPaymentReference = null;
+    }
     res.status(500).json({ error: e.message || "Failed to initialize payment" });
   }
 });
@@ -290,7 +319,14 @@ router.get("/verify", authenticate, async (req, res) => {
 
   const existing = store.payments.get(ref);
   if (!existing) return res.status(404).json({ error: "Payment not found" });
+  if (existing.buyerId !== String(req.user.id)) {
+    return res.status(403).json({ error: "Only the buyer who started this payment can verify it" });
+  }
+  if (existing.settlementInProgress) {
+    return res.status(409).json({ error: "Payment settlement is already in progress" });
+  }
 
+  let transferCreatedOrFound = null;
   try {
     let verified;
     if (existing.demo) {
@@ -301,43 +337,25 @@ router.get("/verify", authenticate, async (req, res) => {
 
     const status = verified.status;
     if (status === "success") {
-      existing.status = "success";
-      existing.verifiedAt = new Date().toISOString();
-
       const parcel = store.parcels.get(existing.parcelId);
-      let transferCreatedOrFound = null;
-      if (parcel && (parcel.status === "available" || parcel.status === "locked_for_transaction")) {
-        const settleEngine = new LandConflictEngine(store);
-        const settlementEval = await settleEngine.evaluateTransaction({
-          parcel_id: parcel.id,
-          seller_id: parcel.sellerId,
-          buyer_id: existing.buyerId,
-          geo_polygon: parcel.boundaryPolygon || null,
-          title_chain: parcel.transfers || [],
-          transaction_type: "sale",
-        });
 
-        if (settlementEval.decision !== "AUTO") {
-          audit(req, "payment.verify.automation_blocked", {
+      if (!existing.demo) {
+        const paidAmountPesewas = Number(verified.amount);
+        const paidCurrency = String(verified.currency || existing.currency || "").toUpperCase();
+        if (paidAmountPesewas !== existing.amountPesewas || paidCurrency !== existing.currency) {
+          existing.status = "amount_mismatch";
+          existing.verifiedAt = new Date().toISOString();
+          releasePaymentLock(parcel, existing);
+          audit(req, "payment.verify.amount_mismatch", {
             reference: ref,
-            evaluation: settlementEval,
+            expectedAmountPesewas: existing.amountPesewas,
+            paidAmountPesewas,
+            expectedCurrency: existing.currency,
+            paidCurrency,
           });
-          if (settlementEval.decision === "RED_FLAG") {
-            raiseParcelRedFlag(req, parcel, {
-              buyerId: existing.buyerId,
-              engine: settleEngine,
-              evaluation: settlementEval,
-              source: "payments.verify",
-            });
-          }
-          existing.status = "success_no_transfer";
-          // If we were mid-lock, release it. For RED_FLAG we keep parcel in disputed (set above).
-          if (parcel.status === "locked_for_transaction") parcel.lockedUntil = null;
-          return res.json({
-            success: true,
-            status: existing.status,
-            message:
-              "Payment verified but automated registry settlement did not run due to a red flag or conflict.",
+          return res.status(409).json({
+            success: false,
+            error: "Verified payment amount does not match parcel price",
             payment: {
               reference: ref,
               status: existing.status,
@@ -346,106 +364,161 @@ router.get("/verify", authenticate, async (req, res) => {
               amountPesewas: existing.amountPesewas,
               currency: existing.currency,
             },
-            transfer: null,
-            redFlag: settlementEval.decision === "RED_FLAG",
-            blocked: true,
-            evaluation: settlementEval,
           });
         }
+      }
 
-        parcel.status = "sold";
-        parcel.lockedUntil = null;
-        const transferId = `transfer_${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
-        const transfer = {
-          id: transferId,
-          parcelId: parcel.id,
-          sellerId: parcel.sellerId,
-          buyerId: existing.buyerId,
-          paystackReference: ref,
-          createdAt: new Date().toISOString(),
-          status: "completed",
-          chainTxHash: null,
-          chainNetwork: null,
-          chainSaleId: null,
-          chainAnchoredAt: null,
-        };
-        store.transfers.set(transfer.id, transfer);
-        parcel.transfers = [...(parcel.transfers || []), transfer];
-        transferCreatedOrFound = transfer;
+      existing.status = "success";
+      existing.verifiedAt = new Date().toISOString();
+      transferCreatedOrFound = findTransferByReference(ref);
 
-        // Notify buyer + seller + Lands Commission/admins when auto-settlement completes.
-        const buyer = store.users.get(existing.buyerId) || null;
-        const seller = store.users.get(parcel.sellerId) || null;
-        if (buyer) {
-          createNotification({
-            userId: buyer.id,
-            type: "success",
-            category: "transaction",
-            title: "Purchase completed",
-            message: `Your purchase of “${parcel.title}” has been settled automatically. Transfer ID: ${transfer.id}.`,
-            actionUrl: "/buyer",
+      if (!transferCreatedOrFound && parcel && (parcel.status === "available" || parcel.status === "locked_for_transaction")) {
+        existing.settlementInProgress = true;
+        try {
+          const settleEngine = new LandConflictEngine(store);
+          const settlementEval = await settleEngine.evaluateTransaction({
+            parcel_id: parcel.id,
+            seller_id: parcel.sellerId,
+            buyer_id: existing.buyerId,
+            geo_polygon: parcel.boundaryPolygon || null,
+            title_chain: parcel.transfers || [],
+            transaction_type: "sale",
+            payment_reference: ref,
           });
-        }
-        if (seller) {
-          createNotification({
-            userId: seller.id,
-            type: "success",
-            category: "transaction",
-            title: "Sale completed",
-            message: `Your parcel “${parcel.title}” was sold and settled automatically. Transfer ID: ${transfer.id}.`,
-            actionUrl: "/seller",
-          });
-        }
-        const admins = Array.from(store.users.values()).filter(
-          (u) => u.role === "lands_commission" || u.role === "admin"
-        );
-        for (const a of admins) {
-          createNotification({
-            userId: a.id,
-            type: "info",
-            category: "transaction",
-            title: "Auto-settlement completed",
-            message: `AUTO settlement completed for parcel “${parcel.title}” (${parcel.id}). Buyer: ${buyer?.email || buyer?.id || "unknown"} · Seller: ${seller?.email || seller?.id || "unknown"} · Transfer: ${transfer.id}.`,
-            actionUrl: "/admin",
-          });
-        }
-        audit(req, "settlement.auto.completed", {
-          parcelId: parcel.id,
-          transferId: transfer.id,
-          buyerId: existing.buyerId,
-          sellerId: parcel.sellerId,
-          paystackReference: ref,
-        });
 
-        // Anchor on-chain asynchronously (fiat first; chain is proof)
-        anchorSaleOnChain({
-          transfer,
-          parcelId: parcel.id,
-          paystackReference: ref,
-        })
-          .then((anchored) => {
-            if (anchored?.skipped) return;
-            const updated = { ...transfer, ...anchored };
-            store.transfers.set(transfer.id, updated);
-            parcel.transfers = (parcel.transfers || []).map((t) =>
-              t.id === transfer.id ? updated : t
-            );
+          if (settlementEval.decision !== "AUTO") {
+            audit(req, "payment.verify.automation_blocked", {
+              reference: ref,
+              evaluation: settlementEval,
+            });
+            if (settlementEval.decision === "RED_FLAG") {
+              raiseParcelRedFlag(req, parcel, {
+                buyerId: existing.buyerId,
+                engine: settleEngine,
+                evaluation: settlementEval,
+                source: "payments.verify",
+              });
+            }
+            existing.status = "success_no_transfer";
+            // If we were mid-lock, release it. For RED_FLAG we keep parcel in disputed (set above).
+            if (parcel.status === "locked_for_transaction") {
+              parcel.lockedUntil = null;
+              parcel.lockedPaymentReference = null;
+              parcel.lockedBuyerId = null;
+            }
+            return res.json({
+              success: true,
+              status: existing.status,
+              message:
+                "Payment verified but automated registry settlement did not run due to a red flag or conflict.",
+              payment: {
+                reference: ref,
+                status: existing.status,
+                landParcelId: existing.parcelId,
+                buyerId: existing.buyerId,
+                amountPesewas: existing.amountPesewas,
+                currency: existing.currency,
+              },
+              transfer: null,
+              redFlag: settlementEval.decision === "RED_FLAG",
+              blocked: true,
+              evaluation: settlementEval,
+            });
+          }
+
+          parcel.status = "sold";
+          parcel.lockedUntil = null;
+          parcel.lockedPaymentReference = null;
+          parcel.lockedBuyerId = null;
+          const transferId = `transfer_${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
+          const transfer = {
+            id: transferId,
+            parcelId: parcel.id,
+            sellerId: parcel.sellerId,
+            buyerId: existing.buyerId,
+            paystackReference: ref,
+            createdAt: new Date().toISOString(),
+            status: "completed",
+            chainTxHash: null,
+            chainNetwork: null,
+            chainSaleId: null,
+            chainAnchoredAt: null,
+          };
+          store.transfers.set(transfer.id, transfer);
+          parcel.transfers = [...(parcel.transfers || []), transfer];
+          transferCreatedOrFound = transfer;
+
+          // Notify buyer + seller + Lands Commission/admins when auto-settlement completes.
+          const buyer = store.users.get(existing.buyerId) || null;
+          const seller = store.users.get(parcel.sellerId) || null;
+          if (buyer) {
+            createNotification({
+              userId: buyer.id,
+              type: "success",
+              category: "transaction",
+              title: "Purchase completed",
+              message: `Your purchase of “${parcel.title}” has been settled automatically. Transfer ID: ${transfer.id}.`,
+              actionUrl: "/buyer",
+            });
+          }
+          if (seller) {
+            createNotification({
+              userId: seller.id,
+              type: "success",
+              category: "transaction",
+              title: "Sale completed",
+              message: `Your parcel “${parcel.title}” was sold and settled automatically. Transfer ID: ${transfer.id}.`,
+              actionUrl: "/seller",
+            });
+          }
+          const admins = Array.from(store.users.values()).filter(
+            (u) => u.role === "lands_commission" || u.role === "admin"
+          );
+          for (const a of admins) {
+            createNotification({
+              userId: a.id,
+              type: "info",
+              category: "transaction",
+              title: "Auto-settlement completed",
+              message: `AUTO settlement completed for parcel “${parcel.title}” (${parcel.id}). Buyer: ${buyer?.email || buyer?.id || "unknown"} · Seller: ${seller?.email || seller?.id || "unknown"} · Transfer: ${transfer.id}.`,
+              actionUrl: "/admin",
+            });
+          }
+          audit(req, "settlement.auto.completed", {
+            parcelId: parcel.id,
+            transferId: transfer.id,
+            buyerId: existing.buyerId,
+            sellerId: parcel.sellerId,
+            paystackReference: ref,
+          });
+
+          // Anchor on-chain asynchronously (fiat first; chain is proof)
+          anchorSaleOnChain({
+            transfer,
+            parcelId: parcel.id,
+            paystackReference: ref,
           })
-          .catch((err) => {
-            console.warn("[chain] anchor failed", err?.message || err);
-          });
-      } else {
-        // If already finalized earlier, return the most recent transfer for this reference (if any)
-        const maybe = Array.from(store.transfers.values()).find((t) => t.paystackReference === ref);
-        if (maybe) transferCreatedOrFound = maybe;
+            .then((anchored) => {
+              if (anchored?.skipped) return;
+              const updated = { ...transfer, ...anchored };
+              store.transfers.set(transfer.id, updated);
+              parcel.transfers = (parcel.transfers || []).map((t) =>
+                t.id === transfer.id ? updated : t
+              );
+            })
+            .catch((err) => {
+              console.warn("[chain] anchor failed", err?.message || err);
+            });
+        } finally {
+          existing.settlementInProgress = false;
+        }
+      } else if (!transferCreatedOrFound) {
+        transferCreatedOrFound = findTransferByReference(ref);
       }
     } else if (status === "failed" || status === "abandoned") {
       existing.status = "failed";
       const parcel = store.parcels.get(existing.parcelId);
-      if (parcel && parcel.status === "locked_for_transaction") {
-        parcel.status = "available";
-        parcel.lockedUntil = null;
-      }
+      releasePaymentLock(parcel, existing);
     }
 
     res.json({

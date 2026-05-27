@@ -59,16 +59,20 @@ export class LandConflictEngine {
     return this.store.parcels.get(parcelId) || null;
   }
 
-  getActiveTransaction(parcelId) {
+  getActiveTransaction(parcelId, tx = {}) {
     const parcel = this.getParcel(parcelId);
     if (!parcel) return null;
     const now = Date.now();
     if (parcel.status === "locked_for_transaction" && parcel.lockedUntil && now < parcel.lockedUntil) {
+      if (tx.payment_reference && parcel.lockedPaymentReference === tx.payment_reference) return null;
       return { type: "lock", lockedUntil: parcel.lockedUntil };
     }
 
     const pendingPayment = Array.from(this.store.payments.values()).find(
-      (p) => p.parcelId === parcelId && p.status === "pending"
+      (p) =>
+        p.parcelId === parcelId &&
+        p.status === "pending" &&
+        (!tx.payment_reference || p.reference !== tx.payment_reference)
     );
     if (pendingPayment) return { type: "payment_pending", reference: pendingPayment.reference };
 
@@ -127,7 +131,7 @@ export class LandConflictEngine {
     }
 
     // MODULE B — DOUBLE SALE DETECTOR
-    const activeTx = this.getActiveTransaction(tx.parcel_id);
+    const activeTx = this.getActiveTransaction(tx.parcel_id, tx);
     if (activeTx) {
       flags.push("ACTIVE_TRANSACTION_EXISTS");
       riskScore += W.ACTIVE_TRANSACTION_EXISTS;

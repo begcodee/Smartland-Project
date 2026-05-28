@@ -150,7 +150,7 @@ router.post("/initialize", authenticate, async (req, res) => {
     .safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid payload" });
   const parcelId = parsed.data.parcelId ?? parsed.data.landParcelId;
-  const { amountGhs, channel } = parsed.data;
+  const { channel } = parsed.data;
   if (!parcelId) return res.status(400).json({ error: "landParcelId is required" });
 
   const parcel = store.parcels.get(parcelId);
@@ -204,7 +204,8 @@ router.post("/initialize", authenticate, async (req, res) => {
   parcel.status = "locked_for_transaction";
   parcel.lockedUntil = now + lockMs;
 
-  const amount = amountGhs ?? parcel.priceGhs;
+  // Price is a registry invariant; clients may display it but must not choose the settlement amount.
+  const amount = parcel.priceGhs;
   let amountPesewas;
   try {
     amountPesewas = toPesewas(amount);

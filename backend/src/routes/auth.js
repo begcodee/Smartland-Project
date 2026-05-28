@@ -18,6 +18,8 @@ const registerSchema = z.object({
   arbitratorRegNo: z.string().trim().min(2).max(50).optional().nullable(),
 });
 
+const SELF_REGISTRATION_ROLES = new Set(["buyer", "seller"]);
+
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(1).max(200),
@@ -32,6 +34,11 @@ router.post("/register", async (req, res) => {
   }
   const { name, email, password, phoneNumber, organization, staffId, arbitratorRegNo } = parsed.data;
   const role = parsed.data.role === "admin" ? "lands_commission" : parsed.data.role;
+  if (!SELF_REGISTRATION_ROLES.has(role)) {
+    return res.status(403).json({
+      error: "Staff and arbitrator accounts must be provisioned by SmartLand administrators.",
+    });
+  }
 
   const normalizedEmail = email;
   const existing = Array.from(store.users.values()).find(

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  User, Mail, Lock, Phone, Building, Eye, EyeOff,
+  User, Mail, Lock, Phone, Eye, EyeOff,
   ShieldCheck, Loader2, InfoIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -24,8 +24,6 @@ const REG_FORM_DRAFT_KEY = 'smartland_registration_form_draft_v1';
 const ROLE_OPTIONS: { value: Role; label: string; description: string }[] = [
   { value: 'buyer', label: 'Buyer / Investor', description: 'Search and purchase land parcels' },
   { value: 'seller', label: 'Seller (Landowner / Agent)', description: 'List and sell land parcels' },
-  { value: 'admin', label: 'Admin (Ghana Lands Commission)', description: 'Oversee registry and users' },
-  { value: 'nia', label: 'NIA Employee', description: 'Verify Ghana Card submissions and staff identity' },
 ];
 
 interface NewUserRegistrationFlowProps {
@@ -105,9 +103,7 @@ export function NewUserRegistrationFlow({ onSuccess, onBack }: NewUserRegistrati
     formData.email.trim() &&
     formData.phoneNumber.trim() &&
     formData.password.length >= 6 &&
-    formData.password === formData.confirmPassword &&
-    (formData.role !== 'admin' || !!formData.staffId.trim()) &&
-    (formData.role !== 'nia' || !!formData.staffId.trim());
+    formData.password === formData.confirmPassword;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,7 +123,6 @@ export function NewUserRegistrationFlow({ onSuccess, onBack }: NewUserRegistrati
           role: formData.role,
           organization: formData.organization.trim() || undefined,
           password: formData.password,
-          staffId: (formData.role === 'admin' || formData.role === 'nia') ? formData.staffId.trim() : undefined,
         });
         resMsg = (res as { message?: string }).message;
         // Backend created the user — use the returned user object
@@ -158,7 +153,6 @@ export function NewUserRegistrationFlow({ onSuccess, onBack }: NewUserRegistrati
           country: 'GH',
           phoneNumber: formData.phoneNumber.trim(),
           organization: formData.organization.trim() || undefined,
-          staffId: (formData.role === 'admin' || formData.role === 'nia') ? formData.staffId.trim() : undefined,
         };
         // Register in the shared pending users store so the admin dashboard can see them
         addLocalPendingUser(newUser);
@@ -228,39 +222,6 @@ export function NewUserRegistrationFlow({ onSuccess, onBack }: NewUserRegistrati
               {ROLE_OPTIONS.find((o) => o.value === formData.role)?.description}
             </p>
           </div>
-
-          {/* Admin / NIA extras */}
-          {(formData.role === 'admin' || formData.role === 'nia') && (
-            <div className="space-y-3 p-3 rounded-lg border border-border bg-secondary/40">
-              <div className="space-y-2">
-                <Label className="text-foreground">Organization *</Label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input
-                    placeholder="e.g. Ghana Lands Commission"
-                    value={formData.organization}
-                    onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-foreground">Staff ID *</Label>
-                <Input
-                  placeholder="e.g. GLC-EMP-2024-001"
-                  value={formData.staffId}
-                  onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  {formData.role === 'nia'
-                    ? 'Issued by NIA. Required for NIA employee access.'
-                    : 'Issued by Ghana Lands Commission. Required for admin access.'}
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Full name */}
           <div className="space-y-2">
@@ -366,7 +327,7 @@ export function NewUserRegistrationFlow({ onSuccess, onBack }: NewUserRegistrati
           </div>
 
           <p className="text-xs text-muted-foreground text-center pt-1">
-            Arbitrator accounts are assigned by Ghana Lands Commission and cannot self-register.
+            Staff and arbitrator accounts are assigned by Ghana Lands Commission and cannot self-register.
           </p>
         </form>
       </CardContent>
